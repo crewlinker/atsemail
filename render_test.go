@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/crewlinker/atsemail"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRenderJobApplicationNotification(t *testing.T) {
@@ -46,7 +45,7 @@ func TestRenderJobApplicationNotification(t *testing.T) {
 			g := NewWithT(t)
 
 			render, err := atsemail.New(entry.example)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 
 			var txtbuf, htbuf bytes.Buffer
 			if err := render.Render(&txtbuf, &htbuf); err != nil {
