@@ -1,15 +1,10 @@
 linters-settings:
-  errcheck:
-    exclude-functions:
-      - (github.com/jackc/pgx/v5.Tx).Rollback
   staticcheck:
     checks: ["all"]
   stylecheck:
     checks: ["all"]
   funlen:
     lines: 200
-  cyclop:
-    max-complexity: 20
   varnamelen:
     max-distance: 15
     ignore-names:
@@ -20,11 +15,13 @@ linters-settings:
       - w # io.Writers
       - r # io.Readers or http.Request
       - ok # common bool
-      - rw # read-write database 
-      - ro # read-only database 
+      - rw # read write db
+      - ro # read-only db
 linters:
   enable-all: true
   disable:
+    - execinquery # deprecated
+    - gomnd # renamed
     - dupl # false positive galore
     - exhaustruct # CDK has large structs we use partially
     - gochecknoinits # frameworks and magefile use init responsibly
@@ -33,23 +30,14 @@ linters:
     - depguard # too agressive
     - tagliatelle # we have lots of aws tags that don't follow the standards
     - nonamedreturns # makes some functions very unreadable
-    - wsl # too strict
-    - gochecknoglobals # too strict
-    - gomoddirectives # can't get this to shutup
-    - goconst # text identifiers makes it more readable
-    - funlen # trust our own judgement
-    - err113 # too much effort
-    - perfsprint #microoptimization
-    - gomnd
-    - canonicalheader
-    - execinquery
+    - wsl # too opinionated
+    - gochecknoglobals # too opinionated, globals are fine sometimes.
+    - err113 # slows us down too much
+    - gomoddirectives # else, why is it a toolchain feature
+    - perfsprint # microoptimization, not worth it us
+    - unparam # useful to sketch out a method/function
 
 issues:
-  include:
-    - EXC0015 # warn for lack of package comment
-    - EXC0013 # warn for lack of package comment
-    - EXC0012 # EXC0012 revive: Annoying issue about not having a comment. The rare codebase has such comments
-    - EXC0014 # EXC0014 revive: Annoying issue about not having a comment. The rare codebase has such comments
   exclude-dirs:
     - infra/builds
     - node_modules
@@ -58,6 +46,7 @@ issues:
     - path: _test\.go
       linters:
         - gocyclo
+        - errcheck
         - dupl
         - gosec
         - forcetypeassert
@@ -65,34 +54,20 @@ issues:
         - lll
         - err113
         - revive
-        - perfsprint
         - wrapcheck
-        - nlreturn
-        - varnamelen
-        - errcheck
         - nilnil
     - path: infra
       linters:
         - mnd
         - interfacebloat
-        - goconst
-    - path: migrations
+        - funlen
+        - maintidx
+    - path: view/view\.go
       linters:
-        - unused
-        - unparam
-    - path: lambda
-      linters:
-        - nilnil
+        - contextcheck # caused by templ code generation
     - path: magefiles
       linters:
         - mnd
         - err113
         - goconst
         - wrapcheck
-    - path: e2e
-      linters:
-        - mnd
-        - err113
-        - goconst
-        - wrapcheck
-        - protogetter
