@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -65,6 +66,23 @@ func (Dev) TestE2e(env string) error {
 func (Dev) TestSome(labelFilter string) error {
 	if err := (Dev{}).testSome(labelFilter, "./..."); err != nil {
 		return fmt.Errorf("failed to run ginkgo: %w", err)
+	}
+
+	return nil
+}
+
+// Release tags a new version and pushes it.
+func (Dev) Release(version string) error {
+	if !regexp.MustCompile(`^v([0-9]+).([0-9]+).([0-9]+)$`).Match([]byte(version)) {
+		return fmt.Errorf("version must be in format vX.Y.Z")
+	}
+
+	if err := sh.Run("git", "tag", version); err != nil {
+		return fmt.Errorf("failed to tag version: %w", err)
+	}
+
+	if err := sh.Run("git", "push", "origin", version); err != nil {
+		return fmt.Errorf("failed to push version tag: %w", err)
 	}
 
 	return nil
