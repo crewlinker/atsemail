@@ -1,1 +1,12 @@
-Hello world
+NEW JOB APPLICATION
+
+$.JobApplicantGivenName$ $.JobApplicantFamilyName$ has applied for the job
+opening: $.JobPostingTitle$ $.JobPostingHref$. Open the Sterndesk dashboard or
+view the application directly by clicking the button below.
+
+View application $.JobApplicationHref$
+
+--------------------------------------------------------------------------------
+
+If you don't want to receive these notifications, unassign yourself from the job
+posting or close it.

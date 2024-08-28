@@ -14,24 +14,37 @@ var htmlFiles embed.FS
 //go:embed  exported/text/*.txt
 var textFiles embed.FS
 
-type EmailTemplate interface {
+type EmailData interface {
 	Name() string
 }
 
-type Render[E EmailTemplate] struct {
+type Render[E EmailData] struct {
 	data E
 	html *htemplate.Template
 	text *ttemplate.Template
 }
 
-func New[E EmailTemplate](data E) (r *Render[E], err error) {
+const (
+	leftDelim  = "$"
+	rightDelim = "$"
+	opts       = "missingkey=error"
+)
+
+func New[E EmailData](data E) (r *Render[E], err error) {
 	r = &Render[E]{data: data}
-	r.html, err = htemplate.ParseFS(htmlFiles, "exported/html/"+data.Name()+".html")
+
+	r.html, err = htemplate.New("").
+		Delims(leftDelim, rightDelim).
+		Option(opts).
+		ParseFS(htmlFiles, "exported/html/"+data.Name()+".html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
 
-	r.text, err = ttemplate.ParseFS(textFiles, "exported/text/"+data.Name()+".txt")
+	r.text, err = ttemplate.New("").
+		Delims(leftDelim, rightDelim).
+		Option(opts).
+		ParseFS(textFiles, "exported/text/"+data.Name()+".txt")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse text: %w", err)
 	}
