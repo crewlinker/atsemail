@@ -1,0 +1,19 @@
+{
+  "name": "atsemail",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "email dev",
+    "export": "email export"
+  },
+  "dependencies": {
+    "@react-email/components": "0.0.23",
+    "react-email": "3.0.1",
+    "react-dom": "18.3.1",
+    "react": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.4",
+    "@types/react-dom": "18.3.0"
+  }
+}
