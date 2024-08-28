@@ -14,12 +14,8 @@ var htmlFiles embed.FS
 //go:embed  exported/text/*.txt
 var textFiles embed.FS
 
-type EmailData interface {
-	Name() string
-}
-
-type Render[E EmailData] struct {
-	data E
+type Render[E any] struct {
+	name string
 	html *htemplate.Template
 	text *ttemplate.Template
 }
@@ -30,13 +26,13 @@ const (
 	opts       = "missingkey=error"
 )
 
-func New[E EmailData](data E) (r *Render[E], err error) {
-	r = &Render[E]{data: data}
+func New[E any](name string) (r *Render[E], err error) {
+	r = &Render[E]{name: name}
 
 	r.html, err = htemplate.New("").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		ParseFS(htmlFiles, "exported/html/"+data.Name()+".html")
+		ParseFS(htmlFiles, "exported/html/"+r.name+".html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
@@ -44,7 +40,7 @@ func New[E EmailData](data E) (r *Render[E], err error) {
 	r.text, err = ttemplate.New("").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		ParseFS(textFiles, "exported/text/"+data.Name()+".txt")
+		ParseFS(textFiles, "exported/text/"+r.name+".txt")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse text: %w", err)
 	}
@@ -52,12 +48,12 @@ func New[E EmailData](data E) (r *Render[E], err error) {
 	return r, nil
 }
 
-func (r *Render[E]) Render(txtw, htmw io.Writer) error {
-	if err := r.text.ExecuteTemplate(txtw, r.data.Name()+".txt", r.data); err != nil {
+func (r *Render[E]) Render(txtw, htmw io.Writer, data E) error {
+	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
 		return fmt.Errorf("failed to render text: %w", err)
 	}
 
-	if err := r.html.ExecuteTemplate(htmw, r.data.Name()+".html", r.data); err != nil {
+	if err := r.html.ExecuteTemplate(htmw, r.name+".html", data); err != nil {
 		return fmt.Errorf("failed to render html: %w", err)
 	}
 

@@ -14,12 +14,12 @@ func TestRenderJobApplicationNotification(t *testing.T) {
 	t.Parallel()
 
 	for idx, entry := range []struct {
-		example    atsemail.JobApplicationNotification
+		data       atsemail.JobApplicationNotification
 		expectHTML func(Gomega, *bytes.Buffer)
 		expectText func(Gomega, *bytes.Buffer)
 	}{
 		{
-			example: atsemail.JobApplicationNotification{
+			data: atsemail.JobApplicationNotification{
 				JobApplicantGivenName:  "Elon",
 				JobApplicantFamilyName: "Musk",
 				JobPostingTitle:        "Janitor",
@@ -44,11 +44,11 @@ func TestRenderJobApplicationNotification(t *testing.T) {
 			t.Parallel()
 			g := NewWithT(t)
 
-			render, err := atsemail.New(entry.example)
+			render, err := atsemail.New[atsemail.JobApplicationNotification]("job-application-notification")
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var txtbuf, htbuf bytes.Buffer
-			if err := render.Render(&txtbuf, &htbuf); err != nil {
+			if err := render.Render(&txtbuf, &htbuf, entry.data); err != nil {
 				t.Errorf("failed to render example %d: %v", idx, err)
 			}
 

@@ -7,7 +7,3 @@ type JobApplicationNotification struct {
 	JobPostingHref         string
 	JobApplicationHref     string
 }
-
-func (JobApplicationNotification) Name() string {
-	return "job-application-notification"
-}
