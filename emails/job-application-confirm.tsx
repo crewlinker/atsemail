@@ -23,7 +23,7 @@ export const JobApplicationConfirm = () => {
       <Preview>Application received for $.JobPostingTitle$</Preview>
       <Tailwind>
         <Body className="bg-white my-auto mx-auto font-sans px-2">
-          <Container className="border border-solid border-[#eaeaea] rounded-2xl my-[40px] mx-auto p-[20px] max-w-[465px]">
+          <Container className="border border-solid border-[#eaeaea] rounded-2xl my-[40px] mx-auto p-[20px] max-w-[465px] sd-theme-container">
             <Heading as="h2">Application received</Heading>
             <Text>
               We have succesfully received your application for the job
@@ -56,7 +56,7 @@ export const JobApplicationConfirm = () => {
               click the button below or copy it in your browser:
             </Text>
             <Button
-              className="bg-blue-500 hover:bg-blue-700 mb-5 text-white font-bold py-2 px-4 rounded"
+              className="bg-blue-500 hover:bg-blue-700 mb-5 text-white font-bold py-2 px-4 rounded sd-theme-button"
               href="$.CareerSiteHomepageHref$"
             >
               View other job postings

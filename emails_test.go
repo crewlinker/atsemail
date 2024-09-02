@@ -7,18 +7,18 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/crewlinker/atsemail"
+	emailsv1 "github.com/crewlinker/atsemail/emails/v1"
 )
 
 func TestRenderJobApplicationNotification(t *testing.T) {
 	t.Parallel()
 
 	for idx, entry := range []struct {
-		data atsemail.JobApplicationNotification
+		data *emailsv1.JobApplicationNotification
 		exp  func(Gomega, *bytes.Buffer, *bytes.Buffer)
 	}{
 		{
-			data: atsemail.JobApplicationNotification{
+			data: &emailsv1.JobApplicationNotification{
 				JobApplicantGivenName:  "Elon",
 				JobApplicantFamilyName: "Musk",
 				JobPostingTitle:        "Janitor",
@@ -49,11 +49,11 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 	t.Parallel()
 
 	for idx, entry := range []struct {
-		data atsemail.JobApplicationConfirm
+		data *emailsv1.JobApplicationConfirm
 		exp  func(Gomega, *bytes.Buffer, *bytes.Buffer)
 	}{
 		{
-			data: atsemail.JobApplicationConfirm{
+			data: &emailsv1.JobApplicationConfirm{
 				JobPostingTitle:        "Janitor",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 			},

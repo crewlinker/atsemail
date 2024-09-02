@@ -30,10 +30,6 @@ func (Dev) Lint() error {
 
 // Test tests all the code using Gingo, with an empty label filter.
 func (Dev) Test() error {
-	if err := sh.Run("npm", "run", "export"); err != nil {
-		return fmt.Errorf("failed to export: %w", err)
-	}
-
 	return (Dev{}).TestSome("!e2e")
 }
 
@@ -58,6 +54,26 @@ func (Dev) Release(version string) error {
 
 	if err := sh.Run("git", "push", "origin", version); err != nil {
 		return fmt.Errorf("failed to push version tag: %w", err)
+	}
+
+	return nil
+}
+
+// Generate generates code across the repository.
+func (Dev) Generate() error {
+	// run std go generators
+	if err := sh.Run("go", "generate", "./..."); err != nil {
+		return fmt.Errorf("failed to go generate: %w", err)
+	}
+
+	// failed to export email
+	if err := sh.Run("npm", "run", "export"); err != nil {
+		return fmt.Errorf("failed to export email html: %w", err)
+	}
+
+	// generate protobuf in subdirs
+	if err := sh.Run("buf", "generate"); err != nil {
+		return fmt.Errorf("failed to generate protobuf: %w", err)
 	}
 
 	return nil

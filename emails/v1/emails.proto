@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package emails.v1;
+
+import "buf/validate/validate.proto";
+
+// describe input into the email for notifying recruiters of a new application
+message JobApplicationNotification {
+  // applicant given name
+  string job_applicant_given_name = 1 [(buf.validate.field).string.min_len = 1];
+  // applicants family name
+  string job_applicant_family_name = 2 [(buf.validate.field).string.min_len = 1];
+  // title of the job posting
+  string job_posting_title = 3 [(buf.validate.field).string.min_len = 1];
+  // href to the job posting
+  string job_posting_href = 4 [(buf.validate.field).string.min_len = 1];
+  // href to the application
+  string job_application_href = 5 [(buf.validate.field).string.min_len = 1];
+}
+
+// describe the input to rendering an email for confirming applicants of their application
+message JobApplicationConfirm {
+  // title of the job posting
+  string job_posting_title = 1;
+  // href to the job posting
+  string job_posting_href = 2;
+  // href to the career site's homepage
+  string career_site_homepage_href = 3;
+}

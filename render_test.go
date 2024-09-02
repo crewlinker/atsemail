@@ -11,11 +11,12 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/crewlinker/atsemail"
 )
 
-func AssertEmailRender[T any](tb testing.TB, templateName string, caseIdx int, data T, expf func(g Gomega, txtbuf, htbuf *bytes.Buffer)) {
+func AssertEmailRender[T proto.Message](tb testing.TB, templateName string, caseIdx int, data T, expf func(g Gomega, txtbuf, htbuf *bytes.Buffer)) {
 	tb.Helper()
 	g, ctx := NewWithT(tb), context.Background()
 
