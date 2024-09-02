@@ -9,6 +9,8 @@ import (
 	ttemplate "text/template"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/bufbuild/protovalidate-go"
+	emailsv1 "github.com/crewlinker/atsemail/emails/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -18,7 +20,7 @@ var htmlFiles embed.FS
 //go:embed  exported/text/*.txt
 var textFiles embed.FS
 
-type Render[E any] struct {
+type Render[E EmailData] struct {
 	name string
 	html *htemplate.Template
 	text *ttemplate.Template
@@ -30,7 +32,12 @@ const (
 	opts       = "missingkey=error"
 )
 
-func New[E proto.Message](name string) (r *Render[E], err error) {
+type EmailData interface {
+	proto.Message
+	GetThemeOverwrites() *emailsv1.ThemeOverwrites
+}
+
+func New[E EmailData](name string) (r *Render[E], err error) {
 	r = &Render[E]{name: name}
 
 	r.html, err = htemplate.New("").
@@ -52,8 +59,12 @@ func New[E proto.Message](name string) (r *Render[E], err error) {
 	return r, nil
 }
 
-func (r *Render[E]) Render(txtw, htmw io.Writer, data E) error {
+func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, data E) error {
 	var htmBuf bytes.Buffer
+
+	if err := val.Validate(data); err != nil {
+		return fmt.Errorf("invalid email data: %w", err)
+	}
 
 	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
 		return fmt.Errorf("failed to render text: %w", err)
@@ -74,13 +85,16 @@ func (r *Render[E]) Render(txtw, htmw io.Writer, data E) error {
 	return nil
 }
 
-func (r *Render[E]) ApplyTheme(htmBuf *bytes.Buffer, _ E) error {
+func (r *Render[E]) ApplyTheme(htmBuf *bytes.Buffer, data E) error {
 	doc, err := goquery.NewDocumentFromReader(htmBuf)
 	if err != nil {
 		return fmt.Errorf("failed to read into document: %w", err)
 	}
 
-	// @TODO apply theme variables
+	// @TODO apply theme overwrites
+	overwrites := data.GetThemeOverwrites()
+	_ = overwrites
+
 	// doc.Find(".sd-theme-button").Each(func(_ int, s *goquery.Selection) {
 	// 	s.Each(func(_ int, s *goquery.Selection) {
 	// 		style, _ := s.Attr("style")

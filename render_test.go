@@ -8,23 +8,28 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/bufbuild/protovalidate-go"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	. "github.com/onsi/gomega"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/crewlinker/atsemail"
 )
 
-func AssertEmailRender[T proto.Message](tb testing.TB, templateName string, caseIdx int, data T, expf func(g Gomega, txtbuf, htbuf *bytes.Buffer)) {
+func AssertEmailRender[T atsemail.EmailData](
+	tb testing.TB, templateName string, caseIdx int, data T, expf func(g Gomega, txtbuf, htbuf *bytes.Buffer),
+) {
 	tb.Helper()
 	g, ctx := NewWithT(tb), context.Background()
+
+	val, err := protovalidate.New()
+	g.Expect(err).ToNot(HaveOccurred())
 
 	render, err := atsemail.New[T](templateName)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	var txtbuf, htbuf bytes.Buffer
-	g.Expect(render.Render(&txtbuf, &htbuf, data)).To(Succeed())
+	g.Expect(render.Render(val, &txtbuf, &htbuf, data)).To(Succeed())
 
 	expf(g, &htbuf, &txtbuf)
 

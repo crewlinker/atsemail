@@ -55,6 +55,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 		{
 			data: &emailsv1.JobApplicationConfirm{
 				JobPostingTitle:        "Janitor",
+				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {

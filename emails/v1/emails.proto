@@ -16,14 +16,30 @@ message JobApplicationNotification {
   string job_posting_href = 4 [(buf.validate.field).string.min_len = 1];
   // href to the application
   string job_application_href = 5 [(buf.validate.field).string.min_len = 1];
+  // theme variables
+  ThemeOverwrites theme_overwrites = 100;
 }
 
 // describe the input to rendering an email for confirming applicants of their application
 message JobApplicationConfirm {
   // title of the job posting
-  string job_posting_title = 1;
+  string job_posting_title = 1 [(buf.validate.field).string.min_len = 1];
   // href to the job posting
-  string job_posting_href = 2;
+  string job_posting_href = 2 [(buf.validate.field).string.min_len = 1];
   // href to the career site's homepage
-  string career_site_homepage_href = 3;
+  string career_site_homepage_href = 3 [(buf.validate.field).string.min_len = 1];
+  // theme variables
+  ThemeOverwrites theme_overwrites = 100;
+}
+
+// available values for the border radius
+enum BorderRadius {
+  // when no radius is specified
+  BORDER_RADIUS_UNSPECIFIED = 0;
+}
+
+// can be specified to overwrite parts of the email
+message ThemeOverwrites {
+  // radius of the border
+  BorderRadius border_radius = 1;
 }
