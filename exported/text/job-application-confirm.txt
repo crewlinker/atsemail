@@ -1,0 +1,23 @@
+APPLICATION RECEIVED
+
+We have succesfully received your application for the job
+posting: $.JobPostingTitle$ $.JobPostingHref$ This is what will happen next:
+
+•
+
+We will review your resume and any other documents you've provided
+
+•
+
+You'll hear back from us in the coming days
+
+If you want to take a look at some more job postings. You can click the button
+below or copy it in your browser:
+
+View other job postings $.CareerSiteHomepageHref$
+
+--------------------------------------------------------------------------------
+
+If you didn't apply for this job posting, it could be that someone applied with
+the wrong email and it accidentally arrived in your inbox. If that is the case
+you can ignore this email.

@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
@@ -31,35 +28,13 @@ func (Dev) Lint() error {
 	return nil
 }
 
-// Serve will create or replace containers used for development.
-func (Dev) Serve() error {
-	// to make queue names unique but consistent between containers we provide an environment
-	// variable that uses a millisecond timestamp.
-	os.Setenv("STAMP", strconv.FormatInt(time.Now().UnixMilli(), 10))
-
-	if err := sh.RunWith(map[string]string{}, "docker", "compose",
-		"-f", "docker-compose.yml",
-		"up",
-		"-d", "--build", "--remove-orphans", "--force-recreate",
-	); err != nil {
-		return fmt.Errorf("failed to run: %w", err)
-	}
-
-	return nil
-}
-
 // Test tests all the code using Gingo, with an empty label filter.
 func (Dev) Test() error {
-	return (Dev{}).TestSome("!e2e")
-}
-
-// TestE2e will run the e2e tests.
-func (Dev) TestE2e(env string) error {
-	if err := godotenv.Load("e2e." + env + ".env"); err != nil {
-		return fmt.Errorf("failed to load e2e env: %w", err)
+	if err := sh.Run("npm", "run", "export"); err != nil {
+		return fmt.Errorf("failed to export: %w", err)
 	}
 
-	return (Dev{}).testSome("", "./e2e")
+	return (Dev{}).TestSome("!e2e")
 }
 
 // TestSome tests the whole repo using Ginkgo test runner with label filters applied.
@@ -98,26 +73,6 @@ func (Dev) testSome(labelFilter, dir string) error {
 		dir,
 	); err != nil {
 		return fmt.Errorf("failed to run ginkgo: %w", err)
-	}
-
-	return nil
-}
-
-// Generate generates code across the repository.
-func (Dev) Generate() error {
-	// run std go generators
-	if err := sh.Run("go", "generate", "./..."); err != nil {
-		return fmt.Errorf("failed to go generate: %w", err)
-	}
-
-	// generate protobuf in subdirs
-	if err := sh.Run("buf", "generate"); err != nil {
-		return fmt.Errorf("failed to generate protobuf: %w", err)
-	}
-
-	// generate mock types
-	if err := sh.Run("go", "run", "-mod=readonly", "github.com/vektra/mockery/v2"); err != nil {
-		return fmt.Errorf("failed to run mockery: %w", err)
 	}
 
 	return nil

@@ -17,6 +17,7 @@ linters-settings:
       - ok # common bool
       - rw # read write db
       - ro # read-only db
+      - g # gomega asserter
 linters:
   enable-all: true
   disable:

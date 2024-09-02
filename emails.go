@@ -7,3 +7,9 @@ type JobApplicationNotification struct {
 	JobPostingHref         string
 	JobApplicationHref     string
 }
+
+type JobApplicationConfirm struct {
+	JobPostingTitle        string
+	JobPostingHref         string
+	CareerSiteHomepageHref string
+}
