@@ -3,6 +3,7 @@ package atsemail
 import (
 	"bytes"
 	"embed"
+	"encoding/base64"
 	"fmt"
 	htemplate "html/template"
 	"io"
@@ -74,8 +75,10 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 		return fmt.Errorf("failed to render html: %w", err)
 	}
 
-	if err := r.ApplyTheme(&htmBuf, data); err != nil {
-		return fmt.Errorf("failed to apply theme: %w", err)
+	if theme := data.GetThemeOverwrites(); theme != nil {
+		if err := r.ApplyTheme(&htmBuf, theme); err != nil {
+			return fmt.Errorf("failed to apply theme: %w", err)
+		}
 	}
 
 	if _, err := io.Copy(htmw, &htmBuf); err != nil {
@@ -85,35 +88,101 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 	return nil
 }
 
-func (r *Render[E]) ApplyTheme(htmBuf *bytes.Buffer, data E) error {
+// ThemeOverwritesToCSS defines how we turn theme overwrite data into css styles.
+func ThemeOverwritesToCSS(theme *emailsv1.ThemeOverwrites) (
+	containerBorderRadius string,
+	buttonBorderRadius string,
+	buttonBackgroundColor string,
+	buttonTextColor string,
+	linkTextColor string,
+) {
+	switch theme.GetBorderRadius() {
+	case emailsv1.BorderRadius_BORDER_RADIUS_UNSPECIFIED:
+	case emailsv1.BorderRadius_BORDER_RADIUS_NONE:
+		containerBorderRadius = `border-radius:0`
+		buttonBorderRadius = `border-radius:0`
+	case emailsv1.BorderRadius_BORDER_RADIUS_SMALL:
+		containerBorderRadius = `border-radius:1%`
+		buttonBorderRadius = `border-radius:3px`
+	case emailsv1.BorderRadius_BORDER_RADIUS_MEDIUM:
+		containerBorderRadius = `border-radius:3%`
+		buttonBorderRadius = `border-radius:5px`
+	case emailsv1.BorderRadius_BORDER_RADIUS_LARGE:
+		containerBorderRadius = `border-radius:5%`
+		buttonBorderRadius = `border-radius:10px`
+	}
+
+	if theme.GetButtonBackgroundColor() != nil {
+		buttonBackgroundColor = fmt.Sprintf(`background-color: rgb(%d,%d,%d)`,
+			theme.GetButtonBackgroundColor().GetRed(),
+			theme.GetButtonBackgroundColor().GetGreen(),
+			theme.GetButtonBackgroundColor().GetBlue())
+	}
+
+	if theme.GetButtonTextColor() != nil {
+		buttonTextColor = fmt.Sprintf(`color: rgb(%d,%d,%d)`,
+			theme.GetButtonTextColor().GetRed(),
+			theme.GetButtonTextColor().GetGreen(),
+			theme.GetButtonTextColor().GetBlue())
+	}
+
+	if theme.GetLinkTextColor() != nil {
+		linkTextColor = fmt.Sprintf(`color: rgb(%d,%d,%d)`,
+			theme.GetLinkTextColor().GetRed(),
+			theme.GetLinkTextColor().GetGreen(),
+			theme.GetLinkTextColor().GetBlue())
+	}
+
+	return //nolint:nakedret
+}
+
+func (r *Render[E]) ApplyTheme(htmBuf *bytes.Buffer, theme *emailsv1.ThemeOverwrites) error {
 	doc, err := goquery.NewDocumentFromReader(htmBuf)
 	if err != nil {
 		return fmt.Errorf("failed to read into document: %w", err)
 	}
 
-	// @TODO apply theme overwrites
-	overwrites := data.GetThemeOverwrites()
-	_ = overwrites
+	borderRadius, buttonBorderRadius, buttonBackgroundColor, buttonTextColor, linkTextColor := ThemeOverwritesToCSS(theme)
 
-	// doc.Find(".sd-theme-button").Each(func(_ int, s *goquery.Selection) {
-	// 	s.Each(func(_ int, s *goquery.Selection) {
-	// 		style, _ := s.Attr("style")
+	doc.Find("a:not(.sd-theme-button)").Each(func(_ int, s *goquery.Selection) {
+		s.Each(func(_ int, s *goquery.Selection) {
+			style, _ := s.Attr("style")
+			style += `;` + linkTextColor
 
-	// 		style += `;background-color: red`
-	// 		style += `;border-radius: 0`
+			s.SetAttr("style", style)
+		})
+	})
 
-	// 		s.SetAttr("style", style)
-	// 	})
-	// })
+	doc.Find(".sd-theme-button").Each(func(_ int, s *goquery.Selection) {
+		s.Each(func(_ int, s *goquery.Selection) {
+			style, _ := s.Attr("style")
 
-	// doc.Find(".sd-theme-container").Each(func(_ int, s *goquery.Selection) {
-	// 	s.Each(func(_ int, s *goquery.Selection) {
-	// 		style, _ := s.Attr("style")
-	// 		style += `;border-radius: 0`
+			style += `;` + buttonTextColor
+			style += `;` + buttonBackgroundColor
+			style += `;` + buttonBorderRadius
 
-	// 		s.SetAttr("style", style)
-	// 	})
-	// })
+			s.SetAttr("style", style)
+		})
+	})
+
+	doc.Find(".sd-theme-container").Each(func(_ int, s *goquery.Selection) {
+		s.Each(func(_ int, s *goquery.Selection) {
+			style, _ := s.Attr("style")
+			style += `;` + borderRadius
+
+			s.SetAttr("style", style)
+		})
+	})
+
+	if theme.GetHeadingImage() != nil {
+		doc.Find(".sd-theme-heading-image").Each(func(_ int, s *goquery.Selection) {
+			s.Each(func(_ int, s *goquery.Selection) {
+				s.SetAttr("src", fmt.Sprintf(`data:%s;base64,%s`,
+					theme.GetHeadingImage().GetContentType(),
+					base64.StdEncoding.EncodeToString(theme.GetHeadingImage().GetData())))
+			})
+		})
+	}
 
 	res, err := doc.Html()
 	if err != nil {

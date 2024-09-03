@@ -28,6 +28,8 @@ message JobApplicationConfirm {
   string job_posting_href = 2 [(buf.validate.field).string.min_len = 1];
   // href to the career site's homepage
   string career_site_homepage_href = 3 [(buf.validate.field).string.min_len = 1];
+  // name of the organization sending the email
+  string organization_name = 4 [(buf.validate.field).string.min_len = 1];
   // theme variables
   ThemeOverwrites theme_overwrites = 100;
 }
@@ -36,10 +38,44 @@ message JobApplicationConfirm {
 enum BorderRadius {
   // when no radius is specified
   BORDER_RADIUS_UNSPECIFIED = 0;
+  // no radius
+  BORDER_RADIUS_NONE = 1;
+  // small radius
+  BORDER_RADIUS_SMALL = 2;
+  // medium radius
+  BORDER_RADIUS_MEDIUM = 3;
+  // large radius
+  BORDER_RADIUS_LARGE = 4;
+}
+
+// color used in the themes overwrite
+message Color {
+  // red component
+  int32 red = 1 [(buf.validate.field).int32.lte = 255];
+  // green component
+  int32 green = 2 [(buf.validate.field).int32.lte = 255];
+  // blue component
+  int32 blue = 3 [(buf.validate.field).int32.lte = 255];
+}
+
+// Image data
+message Image {
+  // content type
+  string content_type = 1 [(buf.validate.field).string.in = "image/png"];
+  // the image bytes
+  bytes data = 2 [(buf.validate.field).bytes.max_len = 32000];
 }
 
 // can be specified to overwrite parts of the email
 message ThemeOverwrites {
   // radius of the border
   BorderRadius border_radius = 1;
+  // button background color
+  Color button_background_color = 2;
+  // text color of the button
+  Color button_text_color = 3;
+  // color of the links
+  Color link_text_color = 4;
+  // image in the the heading
+  Image heading_image = 5;
 }
