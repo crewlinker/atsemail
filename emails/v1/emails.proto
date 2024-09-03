@@ -16,6 +16,8 @@ message JobApplicationNotification {
   string job_posting_href = 4 [(buf.validate.field).string.min_len = 1];
   // href to the application
   string job_application_href = 5 [(buf.validate.field).string.min_len = 1];
+  // name of the organization sending the email
+  string organization_name = 6 [(buf.validate.field).string.min_len = 1];
   // theme variables
   ThemeOverwrites theme_overwrites = 100;
 }

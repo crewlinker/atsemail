@@ -25,6 +25,7 @@ func TestRenderJobApplicationNotification(t *testing.T) {
 				JobPostingTitle:        "Janitor",
 				JobPostingHref:         "http://dash.sterndesk.com/posting",
 				JobApplicationHref:     "http://dash.sterndesk.com/application",
+				OrganizationName:       "Sterndesk",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
 				g.Expect(htbuf.String()).To(HavePrefix("<!DOCTYPE"))
