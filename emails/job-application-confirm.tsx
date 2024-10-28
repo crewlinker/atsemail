@@ -41,7 +41,7 @@ export const JobApplicationConfirm = () => {
                   &bull;
                 </Column>
                 <Column className="pl-2">
-                  <Text>We will review your resume and any other documents you&#39;ve provided</Text>
+                  <Text>We will review your resume and any other documents you've provided</Text>
                 </Column>
               </Row>
               <Row>
