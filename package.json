@@ -12,7 +12,9 @@
     "export": "run-p export:html export:text",
     "export:html": "email export --outDir=exported/html",
     "export:text": "email export --outDir=exported/text --plainText",
+    "check": "run-s check:types check:lint check:formatting",
     "check:lint": "eslint .",
+    "check:types": "tsc --noEmit",
     "check:formatting": "prettier . --check",
     "check:fix-formatting": "prettier . --write"
   },
