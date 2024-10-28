@@ -1,0 +1,16 @@
+.npmrc
+.gitignore
+.prettierignore
+public
+.env
+*.webp
+*.ico
+*.svg
+*.jpg
+*.jpeg
+*.png
+.idea
+*.go
+go.mod
+go.sum
+exported

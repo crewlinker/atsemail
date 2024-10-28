@@ -2,11 +2,21 @@
   "name": "atsemail",
   "version": "0.0.0",
   "private": true,
+  "prettier": {
+    "tabWidth": 2,
+    "printWidth": 120,
+    "useTabs": false
+  },
   "scripts": {
     "dev": "email dev",
     "export": "run-p export:html export:text",
     "export:html": "email export --outDir=exported/html",
-    "export:text": "email export --outDir=exported/text --plainText"
+    "export:text": "email export --outDir=exported/text --plainText",
+    "check": "run-s check:types check:lint check:formatting",
+    "check:lint": "eslint .",
+    "check:types": "tsc --noEmit",
+    "check:formatting": "prettier . --check",
+    "check:fix-formatting": "prettier . --write"
   },
   "dependencies": {
     "@react-email/components": "0.0.23",
@@ -15,8 +25,14 @@
     "react-email": "3.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.13.0",
     "@types/react": "18.3.4",
     "@types/react-dom": "18.3.0",
-    "npm-run-all": "^4.1.5"
+    "eslint": "^9.13.0",
+    "eslint-plugin-react": "^7.37.2",
+    "globals": "^15.11.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.3.3",
+    "typescript-eslint": "^8.11.0"
   }
 }
