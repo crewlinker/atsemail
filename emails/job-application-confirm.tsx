@@ -41,7 +41,7 @@ export const JobApplicationConfirm = () => {
                   &bull;
                 </Column>
                 <Column className="pl-2">
-                  <Text>We will review your resume and any other documents you've provided</Text>
+                  <Text>We will review your resume and any other documents you&#39;ve provided</Text>
                 </Column>
               </Row>
               <Row>
@@ -49,7 +49,7 @@ export const JobApplicationConfirm = () => {
                   &bull;
                 </Column>
                 <Column className="pl-2">
-                  <Text>You'll hear back from us in the coming days</Text>
+                  <Text>You&#39;ll hear back from us in the coming days</Text>
                 </Column>
               </Row>
             </Section>
@@ -65,7 +65,7 @@ export const JobApplicationConfirm = () => {
             </Button>
             <Hr />
             <Text className="faded text-gray-400">
-              If you didn't apply for this job posting, it could be that someone applied with the wrong email and it
+              If you didn&#39;t apply for this job posting, it could be that someone applied with the wrong email and it
               accidentally arrived in your inbox. If that is the case you can ignore this email.
             </Text>
           </Container>

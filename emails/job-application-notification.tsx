@@ -42,7 +42,7 @@ export const JobApplicationNotification = () => {
             </Button>
             <Hr />
             <Text className="faded text-gray-400">
-              If you don't want to receive these notifications, unassign yourself from the job posting or close it.
+              If you don&#39;t want to receive these notifications, unassign yourself from the job posting or close it.
             </Text>
           </Container>
         </Body>
