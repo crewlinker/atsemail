@@ -29,8 +29,8 @@ export const DocumentRequestNotification = () => {
             <Hr />
             <Heading as="h2">New Document Request</Heading>
             <Text>
-              <em>$.CrewGivenName$ $.CrewFamilyName$</em> has submitted a request for the document.
-              Please review the request and take action by clicking the button below.
+              <em>$.CrewGivenName$ $.CrewFamilyName$</em> has submitted a request for the document. Please review the
+              request and take action by clicking the button below.
             </Text>
             <Button
               className="bg-blue-500 hover:bg-blue-700 mb-5 text-white font-bold py-2 px-4 rounded sd-theme-button"
@@ -40,7 +40,8 @@ export const DocumentRequestNotification = () => {
             </Button>
             <Hr />
             <Text className="faded text-gray-400">
-              If you received this email in error or no longer wish to manage these requests, please contact your administrator.
+              If you received this email in error or no longer wish to manage these requests, please contact your
+              administrator.
             </Text>
           </Container>
         </Body>
