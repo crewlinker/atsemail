@@ -161,3 +161,36 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 		})
 	}
 }
+
+func TestRenderDocumentRequestNotification(t *testing.T) {
+	t.Parallel()
+
+	for idx, entry := range []struct {
+		data *emailsv1.DocumentRequestNotification
+		exp  func(Gomega, *bytes.Buffer, *bytes.Buffer)
+	}{
+		{
+			data: &emailsv1.DocumentRequestNotification{
+				CrewGivenName:       "Emma",
+				CrewFamilyName:      "Mailstorm",
+				DocumentRequestHref: "http://dash.sterndesk.com/document-reqeust/11233",
+				OrganizationName:    "Sterndesk",
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+				g.Expect(htbuf.String()).To(HavePrefix("<!DOCTYPE"))
+				g.Expect(htbuf.String()).To(ContainSubstring("Emma"))
+				g.Expect(htbuf.String()).To(ContainSubstring("Mailstorm"))
+				g.Expect(htbuf.String()).To(ContainSubstring("Sterndesk"))
+
+				g.Expect(txtbuf.String()).To(ContainSubstring("---"))
+				g.Expect(txtbuf.String()).To(ContainSubstring("Emma"))
+				g.Expect(txtbuf.String()).To(ContainSubstring("Mailstorm"))
+			},
+		},
+	} {
+		t.Run(fmt.Sprintf("example %d", idx), func(t *testing.T) {
+			t.Parallel()
+			AssertEmailRender(t, "document-request-notification", idx, entry.data, entry.exp)
+		})
+	}
+}

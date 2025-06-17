@@ -36,6 +36,20 @@ message JobApplicationConfirm {
   ThemeOverwrites theme_overwrites = 100;
 }
 
+// describe input into the email for notifying recruiters of a new document request
+message DocumentRequestNotification {
+  // crew given name
+  string crew_given_name = 1 [(buf.validate.field).string.min_len = 1];
+  // crew family name
+  string crew_family_name = 2 [(buf.validate.field).string.min_len = 1];
+  // href to the document request
+  string document_request_href = 3 [(buf.validate.field).string.min_len = 1];
+  // name of the organization sending the email
+  string organization_name = 4 [(buf.validate.field).string.min_len = 1];
+  // theme variables
+  ThemeOverwrites theme_overwrites = 100;
+}
+
 // available values for the border radius
 enum BorderRadius {
   // when no radius is specified
