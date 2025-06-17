@@ -1,0 +1,14 @@
+--------------------------------------------------------------------------------
+
+
+NEW DOCUMENT REQUEST
+
+$.CrewGivenName$ $.CrewFamilyName$ has submitted a request for the document.
+Please review the request and take action by clicking the button below.
+
+Review Document Request $.DocumentRequestHref$
+
+--------------------------------------------------------------------------------
+
+If you received this email in error or no longer wish to manage these requests,
+please contact your administrator.
