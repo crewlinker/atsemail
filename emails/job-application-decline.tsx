@@ -9,7 +9,8 @@ import {
   Preview,
   Text,
   Tailwind,
-  Img, Link
+  Img,
+  Link,
 } from "@react-email/components";
 
 export const JobApplicationDecline = () => {
@@ -29,8 +30,9 @@ export const JobApplicationDecline = () => {
             <Hr />
             <Heading as="h2">Update on your application</Heading>
             <Text>
-              We’ve reviewed your application for <Link href="$.JobPostingHref$">$.JobPostingTitle$</Link> and, unfortunately, you won’t be moving forward for this role.
-              We appreciate the time you took to apply and encourage you to explore other opportunities that might be a great fit for you.
+              We’ve reviewed your application for <Link href="$.JobPostingHref$">$.JobPostingTitle$</Link> and,
+              unfortunately, you won’t be moving forward for this role. We appreciate the time you took to apply and
+              encourage you to explore other opportunities that might be a great fit for you.
             </Text>
             <Button
               className="bg-blue-500 hover:bg-blue-700 mb-5 text-white font-bold py-2 px-4 rounded sd-theme-button"
