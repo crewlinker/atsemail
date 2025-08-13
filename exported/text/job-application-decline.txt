@@ -1,0 +1,11 @@
+--------------------------------------------------------------------------------
+
+
+UPDATE ON YOUR APPLICATION
+
+We’ve reviewed your application for $.JobPostingTitle$ $.JobPostingHref$ and,
+unfortunately, you won’t be moving forward for this role. We appreciate the time
+you took to apply and encourage you to explore other opportunities that might be
+a great fit for you.
+
+View Job Postings $.CareerSiteHomepageHref$
