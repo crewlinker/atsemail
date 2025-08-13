@@ -50,6 +50,20 @@ message DocumentRequestNotification {
   ThemeOverwrites theme_overwrites = 100;
 }
 
+// describe the input to rendering an email for decline the applicant
+message JobApplicationDecline{
+  // title of the job posting
+  string job_posting_title = 1 [(buf.validate.field).string.min_len = 1];
+  // href to the job posting
+  string job_posting_href = 2 [(buf.validate.field).string.min_len = 1];
+  // href to the career site's homepage
+  string career_site_homepage_href = 3 [(buf.validate.field).string.min_len = 1];
+  // name of the organization sending the email
+  string organization_name = 4 [(buf.validate.field).string.min_len = 1];
+  // theme variables
+  ThemeOverwrites theme_overwrites = 100;
+}
+
 // available values for the border radius
 enum BorderRadius {
   // when no radius is specified
