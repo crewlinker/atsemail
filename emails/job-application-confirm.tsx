@@ -54,7 +54,8 @@ export const JobApplicationConfirm = ({
             <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
             <Hr />
             <Text className="faded text-gray-400">
-              This is an automated message. Please do not reply directly to this email.
+              If you didn&#39;t apply for this job posting, it could be that someone applied with the wrong email and it
+              accidentally arrived in your inbox. If that is the case you can ignore this email.
             </Text>
           </Container>
         </Body>
