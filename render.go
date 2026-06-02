@@ -7,6 +7,7 @@ import (
 	"fmt"
 	htemplate "html/template"
 	"io"
+	"strings"
 	ttemplate "text/template"
 
 	"github.com/PuerkitoBio/goquery"
@@ -36,6 +37,38 @@ const (
 type EmailData interface {
 	proto.Message
 	GetThemeOverwrites() *emailsv1.ThemeOverwrites
+}
+
+// BodyVarsProvider is implemented by email data types whose body_json
+// may contain $.candidate_name$, $.job_title$, $.company_name$ placeholders.
+type BodyVarsProvider interface {
+	GetCandidateName() string
+	GetJobPostingTitle() string
+	GetOrganizationName() string
+	GetBodyJson() string
+}
+
+// resolveBodyVars resolves $.candidate_name$, $.job_title$, $.company_name$
+// placeholders in body_json using Go's text/template with custom delimiters.
+func resolveBodyVars(vars BodyVarsProvider) (string, error) {
+	tmpl, err := ttemplate.New("body").
+		Delims(leftDelim+".", rightDelim).
+		Funcs(ttemplate.FuncMap{
+			"candidate_name": func() string { return vars.GetCandidateName() },
+			"job_title":      func() string { return vars.GetJobPostingTitle() },
+			"company_name":   func() string { return vars.GetOrganizationName() },
+		}).
+		Parse(vars.GetBodyJson())
+	if err != nil {
+		return "", fmt.Errorf("failed to parse body_json template: %w", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		return "", fmt.Errorf("failed to execute body_json template: %w", err)
+	}
+
+	return buf.String(), nil
 }
 
 func New[E EmailData](name string) (r *Render[E], err error) {
