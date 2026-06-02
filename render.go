@@ -49,17 +49,22 @@ type BodyVarsProvider interface {
 	GetJobPostingTitle() string
 	GetOrganizationName() string
 	GetBodyJson() string
+	GetJobPostingHref() string
+	GetCareerSiteHomepageHref() string
 }
 
-// resolveBodyVars resolves $.candidate_name$, $.job_title$, $.company_name$
-// placeholders in body_json using Go's text/template with custom delimiters.
+// resolveBodyVars resolves $.candidate_name$, $.job_title$, $.company_name$,
+// $.job_posting_href$, $.career_site_homepage_href$ placeholders in body_json
+// using Go's text/template with custom delimiters.
 func resolveBodyVars(vars BodyVarsProvider) (string, error) {
 	tmpl, err := ttemplate.New("body").
 		Delims(leftDelim+".", rightDelim).
 		Funcs(ttemplate.FuncMap{
-			"candidate_name": func() string { return vars.GetCandidateName() },
-			"job_title":      func() string { return vars.GetJobPostingTitle() },
-			"company_name":   func() string { return vars.GetOrganizationName() },
+			"candidate_name":            func() string { return vars.GetCandidateName() },
+			"job_title":                 func() string { return vars.GetJobPostingTitle() },
+			"company_name":              func() string { return vars.GetOrganizationName() },
+			"job_posting_href":          func() string { return vars.GetJobPostingHref() },
+			"career_site_homepage_href": func() string { return vars.GetCareerSiteHomepageHref() },
 		}).
 		Parse(vars.GetBodyJson())
 	if err != nil {
@@ -102,10 +107,12 @@ func buildPayload[E interface {
 	}
 
 	return map[string]any{
-		"jobPostingTitle":  data.GetJobPostingTitle(),
-		"organizationName": data.GetOrganizationName(),
-		"bodyJson":         resolvedBody,
-		"candidateName":    data.GetCandidateName(),
+		"jobPostingTitle":        data.GetJobPostingTitle(),
+		"organizationName":       data.GetOrganizationName(),
+		"bodyJson":               resolvedBody,
+		"candidateName":          data.GetCandidateName(),
+		"jobPostingHref":         data.GetJobPostingHref(),
+		"careerSiteHomepageHref": data.GetCareerSiteHomepageHref(),
 	}, nil
 }
 
@@ -182,7 +189,7 @@ func New[E EmailData](name string) (r *Render[E], err error) {
 		return nil, fmt.Errorf("failed to read html: %w", err)
 	}
 
-	r.html, err = htemplate.New(r.name + ".html").
+	r.html, err = htemplate.New(r.name+".html").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
 		Parse(stripReactComments(string(htmlContent)))
@@ -195,7 +202,7 @@ func New[E EmailData](name string) (r *Render[E], err error) {
 		return nil, fmt.Errorf("failed to read text: %w", err)
 	}
 
-	r.text, err = ttemplate.New(r.name + ".txt").
+	r.text, err = ttemplate.New(r.name+".txt").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
 		Parse(stripReactComments(string(txtContent)))

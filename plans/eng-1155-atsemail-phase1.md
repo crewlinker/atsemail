@@ -1,6 +1,6 @@
 # Phase 1 — atsemail changes
 
-> Repo: `/Users/development/Documents/work/atsemail`
+> Repo: `https://github.com/crewlinker/atsemail`
 > Branch: create from `main`, e.g. `romansytsykhovskyi/eng-1155-atsemail-editable-body`
 
 ---
