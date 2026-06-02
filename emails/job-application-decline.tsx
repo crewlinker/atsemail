@@ -10,7 +10,27 @@ interface Props {
   candidateName: string;
 }
 
-export const JobApplicationDecline = ({ jobPostingTitle, organizationName, bodyJson }: Props) => {
+const defaultBodyJson = JSON.stringify({
+  type: "doc",
+  content: [
+    { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Application update" }] },
+    {
+      type: "paragraph",
+      content: [
+        {
+          type: "text",
+          text: "Thank you for your interest. Unfortunately, we have decided to move forward with other candidates.",
+        },
+      ],
+    },
+  ],
+});
+
+export const JobApplicationDecline = ({
+  jobPostingTitle = "Job Title",
+  organizationName = "Organization",
+  bodyJson = defaultBodyJson,
+}: Props) => {
   const doc = JSON.parse(bodyJson);
 
   return (

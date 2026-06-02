@@ -1,14 +1,4 @@
-import {
-  Body,
-  Container,
-  Head,
-  Hr,
-  Html,
-  Img,
-  Preview,
-  Tailwind,
-  Text,
-} from "@react-email/components";
+import { Body, Container, Head, Hr, Html, Img, Preview, Tailwind, Text } from "@react-email/components";
 import { EmailEditor } from "@react-email/editor";
 
 interface Props {
@@ -20,7 +10,22 @@ interface Props {
   candidateName: string;
 }
 
-export const JobApplicationConfirm = ({ jobPostingTitle, organizationName, bodyJson }: Props) => {
+const defaultBodyJson = JSON.stringify({
+  type: "doc",
+  content: [
+    { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Application received" }] },
+    {
+      type: "paragraph",
+      content: [{ type: "text", text: "Thank you for applying. We will review your application and get back to you." }],
+    },
+  ],
+});
+
+export const JobApplicationConfirm = ({
+  jobPostingTitle = "Job Title",
+  organizationName = "Organization",
+  bodyJson = defaultBodyJson,
+}: Props) => {
   const doc = JSON.parse(bodyJson);
 
   return (
