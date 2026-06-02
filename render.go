@@ -8,6 +8,7 @@ import (
 	"fmt"
 	htemplate "html/template"
 	"io"
+	"io/fs"
 	"os/exec"
 	"strings"
 	ttemplate "text/template"
@@ -164,21 +165,40 @@ func (r *RenderDynamic[E]) Render(val *protovalidate.Validator, txtw, htmw io.Wr
 	return err
 }
 
+// stripReactComments removes React streaming markers (<!--$-->, <!--/$-->)
+// that conflict with Go's template $...$ delimiters.
+func stripReactComments(s string) string {
+	s = strings.ReplaceAll(s, "<!--$-->", "")
+	s = strings.ReplaceAll(s, "<!--/$-->", "")
+
+	return s
+}
+
 func New[E EmailData](name string) (r *Render[E], err error) {
 	r = &Render[E]{name: name}
 
-	r.html, err = htemplate.New("").
+	htmlContent, err := fs.ReadFile(htmlFiles, "exported/html/"+r.name+".html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read html: %w", err)
+	}
+
+	r.html, err = htemplate.New(r.name + ".html").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		ParseFS(htmlFiles, "exported/html/"+r.name+".html")
+		Parse(stripReactComments(string(htmlContent)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
 
-	r.text, err = ttemplate.New("").
+	txtContent, err := fs.ReadFile(textFiles, "exported/text/"+r.name+".txt")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read text: %w", err)
+	}
+
+	r.text, err = ttemplate.New(r.name + ".txt").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		ParseFS(textFiles, "exported/text/"+r.name+".txt")
+		Parse(stripReactComments(string(txtContent)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse text: %w", err)
 	}

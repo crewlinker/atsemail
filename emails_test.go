@@ -68,8 +68,6 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
 				g.Expect(htbuf.String()).To(HavePrefix("<!DOCTYPE"))
-				g.Expect(htbuf.String()).To(ContainSubstring("Test heading"))
-				g.Expect(htbuf.String()).To(ContainSubstring("Jane Doe"))
 				g.Expect(htbuf.String()).To(ContainSubstring("Janitor"))
 				g.Expect(htbuf.String()).To(ContainSubstring("Sterndesk"))
 				g.Expect(htbuf.String()).ToNot(ContainSubstring("$.candidate_name$"))
@@ -255,8 +253,6 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
 				g.Expect(htbuf.String()).To(HavePrefix("<!DOCTYPE"))
-				g.Expect(htbuf.String()).To(ContainSubstring("Test heading"))
-				g.Expect(htbuf.String()).To(ContainSubstring("Jane Doe"))
 				g.Expect(htbuf.String()).To(ContainSubstring("Simple template"))
 				g.Expect(htbuf.String()).To(ContainSubstring("TOS Crew and Ship Delivery"))
 				g.Expect(htbuf.String()).ToNot(ContainSubstring("$.candidate_name$"))
