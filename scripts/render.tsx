@@ -2,9 +2,10 @@ import { render } from "@react-email/render";
 import { JobApplicationConfirm } from "../emails/job-application-confirm.tsx";
 import { JobApplicationDecline } from "../emails/job-application-decline.tsx";
 
-const templates: Record<string, React.FC<Record<string, unknown>>> = {
-  "job-application-confirm": JobApplicationConfirm as React.FC<Record<string, unknown>>,
-  "job-application-decline": JobApplicationDecline as React.FC<Record<string, unknown>>,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const templates: Record<string, React.FC<any>> = {
+  "job-application-confirm": JobApplicationConfirm,
+  "job-application-decline": JobApplicationDecline,
 };
 
 async function main() {
