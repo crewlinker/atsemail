@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"embed"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	htemplate "html/template"
 	"io"
+	"os/exec"
 	"strings"
 	ttemplate "text/template"
 
@@ -71,6 +73,97 @@ func resolveBodyVars(vars BodyVarsProvider) (string, error) {
 	return buf.String(), nil
 }
 
+// RenderDynamic renders email templates dynamically via Node.js.
+// Used for templates that require TipTap JSON (confirm/decline).
+type RenderDynamic[E interface {
+	EmailData
+	BodyVarsProvider
+}] struct {
+	name string
+}
+
+func NewDynamic[E interface {
+	EmailData
+	BodyVarsProvider
+}](name string) *RenderDynamic[E] {
+	return &RenderDynamic[E]{name: name}
+}
+
+// buildPayload converts the proto data to a map with camelCase keys matching
+// TSX component props, with $.var$ placeholders in body_json resolved.
+func buildPayload[E interface {
+	EmailData
+	BodyVarsProvider
+}](data E) (map[string]any, error) {
+	resolvedBody, err := resolveBodyVars(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve body vars: %w", err)
+	}
+
+	return map[string]any{
+		"jobPostingTitle":  data.GetJobPostingTitle(),
+		"organizationName": data.GetOrganizationName(),
+		"bodyJson":         resolvedBody,
+		"candidateName":    data.GetCandidateName(),
+	}, nil
+}
+
+func (r *RenderDynamic[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, data E) error {
+	if err := val.Validate(data); err != nil {
+		return fmt.Errorf("invalid email data: %w", err)
+	}
+
+	payload, err := buildPayload(data)
+	if err != nil {
+		return fmt.Errorf("failed to build payload: %w", err)
+	}
+
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	cmd := exec.Command("npx", "tsx", "scripts/render.tsx", r.name)
+	cmd.Stdin = bytes.NewReader(b)
+
+	out, err := cmd.Output()
+	if err != nil {
+		var stderr string
+		if ee, ok := err.(*exec.ExitError); ok {
+			stderr = string(ee.Stderr)
+		}
+
+		return fmt.Errorf("node render failed: %w: %s", err, stderr)
+	}
+
+	var result struct {
+		HTML string `json:"html"`
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(out, &result); err != nil {
+		return fmt.Errorf("failed to parse render result: %w", err)
+	}
+
+	if _, err := io.WriteString(txtw, result.Text); err != nil {
+		return fmt.Errorf("failed to write text: %w", err)
+	}
+
+	var htmBuf bytes.Buffer
+	if _, err := htmBuf.WriteString(result.HTML); err != nil {
+		return fmt.Errorf("failed to write html: %w", err)
+	}
+
+	if theme := data.GetThemeOverwrites(); theme != nil {
+		if err := ApplyTheme(&htmBuf, theme); err != nil {
+			return fmt.Errorf("failed to apply theme: %w", err)
+		}
+	}
+
+	_, err = io.Copy(htmw, &htmBuf)
+
+	return err
+}
+
 func New[E EmailData](name string) (r *Render[E], err error) {
 	r = &Render[E]{name: name}
 
@@ -109,7 +202,7 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 	}
 
 	if theme := data.GetThemeOverwrites(); theme != nil {
-		if err := r.ApplyTheme(&htmBuf, theme); err != nil {
+		if err := ApplyTheme(&htmBuf, theme); err != nil {
 			return fmt.Errorf("failed to apply theme: %w", err)
 		}
 	}
@@ -169,7 +262,7 @@ func ThemeOverwritesToCSS(theme *emailsv1.ThemeOverwrites) (
 	return //nolint:nakedret
 }
 
-func (r *Render[E]) ApplyTheme(htmBuf *bytes.Buffer, theme *emailsv1.ThemeOverwrites) error {
+func ApplyTheme(htmBuf *bytes.Buffer, theme *emailsv1.ThemeOverwrites) error {
 	doc, err := goquery.NewDocumentFromReader(htmBuf)
 	if err != nil {
 		return fmt.Errorf("failed to read into document: %w", err)
