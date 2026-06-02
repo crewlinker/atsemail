@@ -1,5 +1,11 @@
 import { Body, Container, Head, Hr, Html, Img, Preview, Tailwind, Text } from "@react-email/components";
-import { EmailEditor } from "@react-email/editor";
+import { generateHTML } from "@tiptap/html/server";
+import Document from "@tiptap/extension-document";
+import Paragraph from "@tiptap/extension-paragraph";
+import TextExt from "@tiptap/extension-text";
+import Heading from "@tiptap/extension-heading";
+import Bold from "@tiptap/extension-bold";
+import Italic from "@tiptap/extension-italic";
 
 interface Props {
   jobPostingTitle: string;
@@ -21,12 +27,15 @@ const defaultBodyJson = JSON.stringify({
   ],
 });
 
+const extensions = [Document, Paragraph, TextExt, Heading, Bold, Italic];
+
 export const JobApplicationConfirm = ({
   jobPostingTitle = "Job Title",
   organizationName = "Organization",
   bodyJson = defaultBodyJson,
 }: Props) => {
   const doc = JSON.parse(bodyJson);
+  const bodyHtml = generateHTML(doc, extensions);
 
   return (
     <Html>
@@ -42,7 +51,7 @@ export const JobApplicationConfirm = ({
               alt={organizationName}
             />
             <Hr />
-            <EmailEditor content={doc} editable={false} />
+            <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
             <Hr />
             <Text className="faded text-gray-400">
               This is an automated message. Please do not reply directly to this email.
