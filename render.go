@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"embed"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	htemplate "html/template"
 	"io"
@@ -41,19 +40,19 @@ type EmailData interface {
 	GetThemeOverwrites() *emailsv1.ThemeOverwrites
 }
 
-// BodyVarsProvider is implemented by email data types whose body_json
+// BodyVarsProvider is implemented by email data types whose body_html
 // may contain $.candidate_name$, $.job_title$, $.company_name$ placeholders.
 type BodyVarsProvider interface {
 	GetCandidateName() string
 	GetJobPostingTitle() string
 	GetOrganizationName() string
-	GetBodyJson() string
+	GetBodyHtml() string
 	GetJobPostingHref() string
 	GetCareerSiteHomepageHref() string
 }
 
 // resolveBodyVars resolves $.candidate_name$, $.job_title$, $.company_name$,
-// $.job_posting_href$, $.career_site_homepage_href$ placeholders in body_json
+// $.job_posting_href$, $.career_site_homepage_href$ placeholders in body_html
 // using Go's text/template with custom delimiters.
 func resolveBodyVars(vars BodyVarsProvider) (string, error) {
 	tmpl, err := ttemplate.New("body").
@@ -65,71 +64,17 @@ func resolveBodyVars(vars BodyVarsProvider) (string, error) {
 			"job_posting_href":          func() string { return vars.GetJobPostingHref() },
 			"career_site_homepage_href": func() string { return vars.GetCareerSiteHomepageHref() },
 		}).
-		Parse(vars.GetBodyJson())
+		Parse(vars.GetBodyHtml())
 	if err != nil {
-		return "", fmt.Errorf("failed to parse body_json template: %w", err)
+		return "", fmt.Errorf("failed to parse body_html template: %w", err)
 	}
 
 	var buf strings.Builder
 	if err := tmpl.Execute(&buf, nil); err != nil {
-		return "", fmt.Errorf("failed to execute body_json template: %w", err)
+		return "", fmt.Errorf("failed to execute body_html template: %w", err)
 	}
 
 	return buf.String(), nil
-}
-
-// tiptapNode is a ProseMirror/TipTap JSON node.
-type tiptapNode struct {
-	Type    string         `json:"type"`
-	Attrs   map[string]any `json:"attrs"`
-	Content []tiptapNode   `json:"content"`
-	Text    string         `json:"text"`
-	Marks   []struct {
-		Type string `json:"type"`
-	} `json:"marks"`
-}
-
-func renderTiptapNode(n tiptapNode) string {
-	children := func() string {
-		var sb strings.Builder
-		for _, c := range n.Content {
-			sb.WriteString(renderTiptapNode(c))
-		}
-		return sb.String()
-	}
-	switch n.Type {
-	case "doc":
-		return children()
-	case "paragraph":
-		return "<p>" + children() + "</p>"
-	case "heading":
-		level := 1
-		if l, ok := n.Attrs["level"].(float64); ok {
-			level = int(l)
-		}
-		return fmt.Sprintf("<h%d>%s</h%d>", level, children(), level)
-	case "text":
-		result := htemplate.HTMLEscapeString(n.Text)
-		for _, m := range n.Marks {
-			switch m.Type {
-			case "bold":
-				result = "<strong>" + result + "</strong>"
-			case "italic":
-				result = "<em>" + result + "</em>"
-			}
-		}
-		return result
-	default:
-		return children()
-	}
-}
-
-func tiptapJSONToHTML(jsonStr string) (string, error) {
-	var root tiptapNode
-	if err := json.Unmarshal([]byte(jsonStr), &root); err != nil {
-		return "", fmt.Errorf("failed to parse tiptap JSON: %w", err)
-	}
-	return renderTiptapNode(root), nil
 }
 
 // bodyTemplateData is the template data for body-HTML templates.
@@ -195,14 +140,9 @@ func (r *RenderBody[E]) Render(val *protovalidate.Validator, txtw, htmw io.Write
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
-	resolvedJSON, err := resolveBodyVars(data)
+	resolvedHTML, err := resolveBodyVars(data)
 	if err != nil {
 		return fmt.Errorf("failed to resolve body vars: %w", err)
-	}
-
-	bodyHTML, err := tiptapJSONToHTML(resolvedJSON)
-	if err != nil {
-		return fmt.Errorf("failed to convert tiptap JSON to HTML: %w", err)
 	}
 
 	td := bodyTemplateData{ //nolint:gosec
@@ -211,7 +151,7 @@ func (r *RenderBody[E]) Render(val *protovalidate.Validator, txtw, htmw io.Write
 		CareerSiteHomepageHref: data.GetCareerSiteHomepageHref(),
 		OrganizationName:       data.GetOrganizationName(),
 		CandidateName:          data.GetCandidateName(),
-		BodyHtml:               htemplate.HTML(bodyHTML),
+		BodyHtml:               htemplate.HTML(resolvedHTML),
 	}
 
 	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", td); err != nil {

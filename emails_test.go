@@ -11,7 +11,7 @@ import (
 	emailsv1 "github.com/crewlinker/atsemail/emails/v1"
 )
 
-const testBodyJSON = `{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Test heading"}]},{"type":"paragraph","content":[{"type":"text","text":"Hello "},{"type":"text","marks":[{"type":"bold"}],"text":"$.candidate_name$"},{"type":"text","text":", your application for "},{"type":"text","marks":[{"type":"italic"}],"text":"$.job_title$"},{"type":"text","text":" at $.company_name$ has been processed."}]}]}`
+const testBodyHTML = `<h2>Test heading</h2><p>Hello <strong>$.candidate_name$</strong>, your application for <em>$.job_title$</em> at $.company_name$ has been processed.</p>`
 
 func TestRenderJobApplicationNotification(t *testing.T) {
 	t.Parallel()
@@ -63,7 +63,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
@@ -79,7 +79,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
 				OrganizationName:       "TOS Crew and Ship Delivery",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
@@ -109,7 +109,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_SMALL,
@@ -134,7 +134,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_MEDIUM,
@@ -154,7 +154,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_LARGE,
@@ -218,7 +218,7 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
 				OrganizationName:       "TOS Crew and Ship Delivery",
 				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
@@ -248,7 +248,7 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
 				OrganizationName:       "TOS Crew and Ship Delivery",
 				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
-				BodyJson:               testBodyJSON,
+				BodyHtml:               testBodyHTML,
 				CandidateName:          "Jane Doe",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
