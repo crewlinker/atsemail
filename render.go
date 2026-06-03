@@ -139,6 +139,8 @@ func (r *RenderBody[E]) Render(val *protovalidate.Validator, txtw, htmw io.Write
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
+	// html/template does not re-execute content inserted as htemplate.HTML, so $.candidate_name$
+	// and similar placeholders inside body_html would survive verbatim without this separate pass.
 	resolvedHTML, err := resolveBodyVars(data)
 	if err != nil {
 		return fmt.Errorf("failed to resolve body vars: %w", err)
