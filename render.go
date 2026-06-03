@@ -89,8 +89,7 @@ type bodyTemplateData struct {
 }
 
 // RenderBody renders templates that have a $.BodyHtml$ placeholder.
-// It resolves $.var$ placeholders inside body_json, converts the TipTap JSON
-// to HTML, then uses the same static-file path as Render[E].
+// It resolves $.var$ placeholders inside body_html, then uses the same static-file path as Render[E].
 type RenderBody[E interface {
 	EmailData
 	BodyVarsProvider
