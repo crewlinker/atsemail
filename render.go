@@ -9,7 +9,6 @@ import (
 	htemplate "html/template"
 	"io"
 	"io/fs"
-	"os/exec"
 	"strings"
 	ttemplate "text/template"
 
@@ -79,86 +78,149 @@ func resolveBodyVars(vars BodyVarsProvider) (string, error) {
 	return buf.String(), nil
 }
 
-// RenderDynamic renders email templates dynamically via Node.js.
-// Used for templates that require TipTap JSON (confirm/decline).
-type RenderDynamic[E interface {
+// tiptapNode is a ProseMirror/TipTap JSON node.
+type tiptapNode struct {
+	Type    string         `json:"type"`
+	Attrs   map[string]any `json:"attrs"`
+	Content []tiptapNode   `json:"content"`
+	Text    string         `json:"text"`
+	Marks   []struct {
+		Type string `json:"type"`
+	} `json:"marks"`
+}
+
+func renderTiptapNode(n tiptapNode) string {
+	children := func() string {
+		var sb strings.Builder
+		for _, c := range n.Content {
+			sb.WriteString(renderTiptapNode(c))
+		}
+		return sb.String()
+	}
+	switch n.Type {
+	case "doc":
+		return children()
+	case "paragraph":
+		return "<p>" + children() + "</p>"
+	case "heading":
+		level := 1
+		if l, ok := n.Attrs["level"].(float64); ok {
+			level = int(l)
+		}
+		return fmt.Sprintf("<h%d>%s</h%d>", level, children(), level)
+	case "text":
+		result := htemplate.HTMLEscapeString(n.Text)
+		for _, m := range n.Marks {
+			switch m.Type {
+			case "bold":
+				result = "<strong>" + result + "</strong>"
+			case "italic":
+				result = "<em>" + result + "</em>"
+			}
+		}
+		return result
+	default:
+		return children()
+	}
+}
+
+func tiptapJSONToHTML(jsonStr string) (string, error) {
+	var root tiptapNode
+	if err := json.Unmarshal([]byte(jsonStr), &root); err != nil {
+		return "", fmt.Errorf("failed to parse tiptap JSON: %w", err)
+	}
+	return renderTiptapNode(root), nil
+}
+
+// bodyTemplateData is the template data for body-HTML templates.
+// BodyHtml is htemplate.HTML so html/template inserts it without escaping.
+type bodyTemplateData struct {
+	JobPostingTitle        string
+	JobPostingHref         string
+	CareerSiteHomepageHref string
+	OrganizationName       string
+	CandidateName          string
+	BodyHtml               htemplate.HTML
+}
+
+// RenderBody renders templates that have a $.BodyHtml$ placeholder.
+// It resolves $.var$ placeholders inside body_json, converts the TipTap JSON
+// to HTML, then uses the same static-file path as Render[E].
+type RenderBody[E interface {
 	EmailData
 	BodyVarsProvider
 }] struct {
 	name string
+	html *htemplate.Template
+	text *ttemplate.Template
 }
 
-func NewDynamic[E interface {
+func NewBody[E interface {
 	EmailData
 	BodyVarsProvider
-}](name string) *RenderDynamic[E] {
-	return &RenderDynamic[E]{name: name}
-}
+}](name string) (*RenderBody[E], error) {
+	r := &RenderBody[E]{name: name}
 
-// buildPayload converts the proto data to a map with camelCase keys matching
-// TSX component props, with $.var$ placeholders in body_json resolved.
-func buildPayload[E interface {
-	EmailData
-	BodyVarsProvider
-}](data E) (map[string]any, error) {
-	resolvedBody, err := resolveBodyVars(data)
+	htmlContent, err := fs.ReadFile(htmlFiles, "exported/html/"+r.name+".html")
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve body vars: %w", err)
+		return nil, fmt.Errorf("failed to read html: %w", err)
 	}
 
-	return map[string]any{
-		"jobPostingTitle":        data.GetJobPostingTitle(),
-		"organizationName":       data.GetOrganizationName(),
-		"bodyJson":               resolvedBody,
-		"candidateName":          data.GetCandidateName(),
-		"jobPostingHref":         data.GetJobPostingHref(),
-		"careerSiteHomepageHref": data.GetCareerSiteHomepageHref(),
-	}, nil
+	r.html, err = htemplate.New(r.name+".html").
+		Delims(leftDelim, rightDelim).
+		Option(opts).
+		Parse(stripReactComments(string(htmlContent)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse html: %w", err)
+	}
+
+	txtContent, err := fs.ReadFile(textFiles, "exported/text/"+r.name+".txt")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read text: %w", err)
+	}
+
+	r.text, err = ttemplate.New(r.name+".txt").
+		Delims(leftDelim, rightDelim).
+		Option(opts).
+		Parse(stripReactComments(string(txtContent)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse text: %w", err)
+	}
+
+	return r, nil
 }
 
-func (r *RenderDynamic[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, data E) error {
+func (r *RenderBody[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, data E) error {
 	if err := val.Validate(data); err != nil {
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
-	payload, err := buildPayload(data)
+	resolvedJSON, err := resolveBodyVars(data)
 	if err != nil {
-		return fmt.Errorf("failed to build payload: %w", err)
+		return fmt.Errorf("failed to resolve body vars: %w", err)
 	}
 
-	b, err := json.Marshal(payload)
+	bodyHTML, err := tiptapJSONToHTML(resolvedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return fmt.Errorf("failed to convert tiptap JSON to HTML: %w", err)
 	}
 
-	cmd := exec.Command("npx", "tsx", "scripts/render.tsx", r.name)
-	cmd.Stdin = bytes.NewReader(b)
-
-	out, err := cmd.Output()
-	if err != nil {
-		var stderr string
-		if ee, ok := err.(*exec.ExitError); ok {
-			stderr = string(ee.Stderr)
-		}
-
-		return fmt.Errorf("node render failed: %w: %s", err, stderr)
+	td := bodyTemplateData{ //nolint:gosec
+		JobPostingTitle:        data.GetJobPostingTitle(),
+		JobPostingHref:         data.GetJobPostingHref(),
+		CareerSiteHomepageHref: data.GetCareerSiteHomepageHref(),
+		OrganizationName:       data.GetOrganizationName(),
+		CandidateName:          data.GetCandidateName(),
+		BodyHtml:               htemplate.HTML(bodyHTML),
 	}
 
-	var result struct {
-		HTML string `json:"html"`
-		Text string `json:"text"`
-	}
-	if err := json.Unmarshal(out, &result); err != nil {
-		return fmt.Errorf("failed to parse render result: %w", err)
-	}
-
-	if _, err := io.WriteString(txtw, result.Text); err != nil {
-		return fmt.Errorf("failed to write text: %w", err)
+	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", td); err != nil {
+		return fmt.Errorf("failed to render text: %w", err)
 	}
 
 	var htmBuf bytes.Buffer
-	if _, err := htmBuf.WriteString(result.HTML); err != nil {
-		return fmt.Errorf("failed to write html: %w", err)
+	if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", td); err != nil {
+		return fmt.Errorf("failed to render html: %w", err)
 	}
 
 	if theme := data.GetThemeOverwrites(); theme != nil {

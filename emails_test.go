@@ -166,7 +166,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("example %d", idx), func(t *testing.T) {
 			t.Parallel()
-			AssertDynamicEmailRender(t, "job-application-confirm", idx, entry.data, entry.exp)
+			AssertBodyEmailRender(t, "job-application-confirm", idx, entry.data, entry.exp)
 		})
 	}
 }
@@ -261,7 +261,7 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("example %d", idx), func(t *testing.T) {
 			t.Parallel()
-			AssertDynamicEmailRender(t, "job-application-decline", idx, entry.data, entry.exp)
+			AssertBodyEmailRender(t, "job-application-decline", idx, entry.data, entry.exp)
 		})
 	}
 }

@@ -1,5 +1,7 @@
 ----------------------------------------
 
+$.BodyHtml$
+
 ----------------------------------------
 
-This is an automated message. Please do not reply directly to this email.
+If you didn't apply for this job posting, it could be that someone applied with the wrong email and it accidentally arrived in your inbox. If that is the case you can ignore this email.

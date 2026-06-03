@@ -36,7 +36,7 @@ func AssertEmailRender[T atsemail.EmailData](
 	SaveScreenshot(ctx, g, fmt.Sprintf("%s_%d", templateName, caseIdx), &htbuf)
 }
 
-func AssertDynamicEmailRender[T interface {
+func AssertBodyEmailRender[T interface {
 	atsemail.EmailData
 	atsemail.BodyVarsProvider
 }](
@@ -48,7 +48,8 @@ func AssertDynamicEmailRender[T interface {
 	val, err := protovalidate.New()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	render := atsemail.NewDynamic[T](templateName)
+	render, err := atsemail.NewBody[T](templateName)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	var txtbuf, htbuf bytes.Buffer
 	g.Expect(render.Render(val, &txtbuf, &htbuf, data)).To(Succeed())
