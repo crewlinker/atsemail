@@ -12,7 +12,7 @@ import (
 	emailsv1 "github.com/crewlinker/atsemail/emails/v1"
 )
 
-const testBodyHTML = `<h2>Test heading</h2><p>Hello <strong>$.candidate_name$</strong>, your application for <em>$.job_title$</em> at $.company_name$ has been processed.</p>`
+const testBodyHTML = `<h2>Test heading</h2><p>Hello <strong>$.candidate_name$</strong>, your application for <a href="$.job_posting_href$"><em>$.job_title$</em></a> at $.company_name$ has been processed.</p>`
 
 func TestRenderJobApplicationNotification(t *testing.T) {
 	t.Parallel()
@@ -186,9 +186,9 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					LinkTextColor: &emailsv1.Color{
-						Red:   0,
-						Green: 91,
-						Blue:  169,
+						Red:   255,
+						Green: 0,
+						Blue:  0,
 					},
 				},
 			},
@@ -312,9 +312,9 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					LinkTextColor: &emailsv1.Color{
-						Red:   0,
-						Green: 91,
-						Blue:  169,
+						Red:   255,
+						Green: 0,
+						Blue:  0,
 					},
 				},
 			},
