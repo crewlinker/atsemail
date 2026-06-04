@@ -48,7 +48,7 @@ func AssertBodyEmailRender[T interface {
 	val, err := protovalidate.New()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	render, err := atsemail.NewBody[T](templateName)
+	render, err := atsemail.New[T](templateName)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	var txtbuf, htbuf bytes.Buffer

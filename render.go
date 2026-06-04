@@ -88,93 +88,6 @@ type bodyTemplateData struct {
 	BodyHtml               htemplate.HTML
 }
 
-// RenderBody renders templates that have a $.BodyHtml$ placeholder.
-// It resolves $.var$ placeholders inside body_html, then uses the same static-file path as Render[E].
-type RenderBody[E interface {
-	EmailData
-	BodyVarsProvider
-}] struct {
-	name string
-	html *htemplate.Template
-	text *ttemplate.Template
-}
-
-func NewBody[E interface {
-	EmailData
-	BodyVarsProvider
-}](name string) (*RenderBody[E], error) {
-	r := &RenderBody[E]{name: name}
-
-	htmlContent, err := fs.ReadFile(htmlFiles, "exported/html/"+r.name+".html")
-	if err != nil {
-		return nil, fmt.Errorf("failed to read html: %w", err)
-	}
-
-	r.html, err = htemplate.New(r.name+".html").
-		Delims(leftDelim, rightDelim).
-		Option(opts).
-		Parse(stripReactComments(string(htmlContent)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse html: %w", err)
-	}
-
-	txtContent, err := fs.ReadFile(textFiles, "exported/text/"+r.name+".txt")
-	if err != nil {
-		return nil, fmt.Errorf("failed to read text: %w", err)
-	}
-
-	r.text, err = ttemplate.New(r.name+".txt").
-		Delims(leftDelim, rightDelim).
-		Option(opts).
-		Parse(stripReactComments(string(txtContent)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse text: %w", err)
-	}
-
-	return r, nil
-}
-
-func (r *RenderBody[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, data E) error {
-	if err := val.Validate(data); err != nil {
-		return fmt.Errorf("invalid email data: %w", err)
-	}
-
-	// html/template does not re-execute content inserted as htemplate.HTML, so $.candidate_name$
-	// and similar placeholders inside body_html would survive verbatim without this separate pass.
-	resolvedHTML, err := resolveBodyVars(data)
-	if err != nil {
-		return fmt.Errorf("failed to resolve body vars: %w", err)
-	}
-
-	td := bodyTemplateData{ //nolint:gosec
-		JobPostingTitle:        data.GetJobPostingTitle(),
-		JobPostingHref:         data.GetJobPostingHref(),
-		CareerSiteHomepageHref: data.GetCareerSiteHomepageHref(),
-		OrganizationName:       data.GetOrganizationName(),
-		CandidateName:          data.GetCandidateName(),
-		BodyHtml:               htemplate.HTML(resolvedHTML),
-	}
-
-	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", td); err != nil {
-		return fmt.Errorf("failed to render text: %w", err)
-	}
-
-	var htmBuf bytes.Buffer
-	if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", td); err != nil {
-		return fmt.Errorf("failed to render html: %w", err)
-	}
-
-	if theme := data.GetThemeOverwrites(); theme != nil {
-		if err := ApplyTheme(&htmBuf, theme); err != nil {
-			return fmt.Errorf("failed to apply theme: %w", err)
-		}
-	}
-
-	_, err = io.Copy(htmw, &htmBuf)
-
-	return err
-}
-
 // stripReactComments removes React streaming markers (<!--$-->, <!--/$-->)
 // that conflict with Go's template $...$ delimiters.
 func stripReactComments(s string) string {
@@ -223,12 +136,39 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
-	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
-		return fmt.Errorf("failed to render text: %w", err)
-	}
+	// any() cast is required because Go does not allow type assertions directly on type parameters.
+	if bvp, ok := any(data).(BodyVarsProvider); ok {
+		// html/template does not re-execute content inserted as htemplate.HTML, so $.candidate_name$
+		// and similar placeholders inside body_html would survive verbatim without this separate pass.
+		resolvedHTML, err := resolveBodyVars(bvp)
+		if err != nil {
+			return fmt.Errorf("failed to resolve body vars: %w", err)
+		}
 
-	if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", data); err != nil {
-		return fmt.Errorf("failed to render html: %w", err)
+		td := bodyTemplateData{ //nolint:gosec
+			JobPostingTitle:        bvp.GetJobPostingTitle(),
+			JobPostingHref:         bvp.GetJobPostingHref(),
+			CareerSiteHomepageHref: bvp.GetCareerSiteHomepageHref(),
+			OrganizationName:       bvp.GetOrganizationName(),
+			CandidateName:          bvp.GetCandidateName(),
+			BodyHtml:               htemplate.HTML(resolvedHTML),
+		}
+
+		if err := r.text.ExecuteTemplate(txtw, r.name+".txt", td); err != nil {
+			return fmt.Errorf("failed to render text: %w", err)
+		}
+
+		if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", td); err != nil {
+			return fmt.Errorf("failed to render html: %w", err)
+		}
+	} else {
+		if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
+			return fmt.Errorf("failed to render text: %w", err)
+		}
+
+		if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", data); err != nil {
+			return fmt.Errorf("failed to render html: %w", err)
+		}
 	}
 
 	if theme := data.GetThemeOverwrites(); theme != nil {
