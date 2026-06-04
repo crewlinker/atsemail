@@ -91,10 +91,10 @@ type bodyTemplateData struct {
 `BodyHtml` is typed as `htemplate.HTML` so `html/template` inserts it without
 escaping.
 
-### Single `Render[E]` — no separate `RenderBody[E]`
+### `Render[E].Render` method
 
-`RenderBody[E]` and `NewBody` were dropped in favour of a runtime type
-assertion inside the single `Render[E].Render` method:
+`Render[E]` handles both plain and body-var templates via a runtime type
+assertion:
 
 ```go
 if bvp, ok := any(data).(BodyVarsProvider); ok {
@@ -104,7 +104,7 @@ if bvp, ok := any(data).(BodyVarsProvider); ok {
 }
 ```
 
-`Render[E].Render` method:
+Full sequence:
 
 1. Validates the proto message.
 2. If `data` implements `BodyVarsProvider`: calls `resolveBodyVars`, builds
@@ -194,5 +194,5 @@ go mod tidy
 | `exported/html/job-application-decline.html` | Same                                                                                                      |
 | `exported/text/job-application-confirm.txt`  | Re-exported                                                                                               |
 | `exported/text/job-application-decline.txt`  | Same                                                                                                      |
-| `render.go`                                  | Add `BodyVarsProvider`, `resolveBodyVars`, `bodyTemplateData`; merge `RenderBody[E]`/`NewBody` into `Render[E]`/`New` via runtime type assertion |
-| `emails_test.go`                             | Replace `testBodyJSON` with `testBodyHTML`; add `BodyHtml` + `CandidateName` to all confirm/decline cases; switch `NewBody` calls to `New` |
+| `render.go`                                  | Add `BodyVarsProvider` interface, `resolveBodyVars`, `bodyTemplateData`; extend `Render[E].Render` with runtime `BodyVarsProvider` check |
+| `emails_test.go`                             | Replace `testBodyJSON` with `testBodyHTML`; add `BodyHtml` + `CandidateName` to all confirm/decline cases |
