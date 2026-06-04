@@ -50,7 +50,7 @@ message types in `emails/v1/emails.pb.go`.
 
 ---
 
-## Step 2 — `render.go`: resolve `$.var$` placeholders + `RenderBody[E]`
+## Step 2 — `render.go`: resolve `$.var$` placeholders
 
 ### `BodyVarsProvider` interface
 
@@ -91,23 +91,26 @@ type bodyTemplateData struct {
 `BodyHtml` is typed as `htemplate.HTML` so `html/template` inserts it without
 escaping.
 
-### `RenderBody[E]`
+### Single `Render[E]` — no separate `RenderBody[E]`
+
+`RenderBody[E]` and `NewBody` were dropped in favour of a runtime type
+assertion inside the single `Render[E].Render` method:
 
 ```go
-type RenderBody[E interface {
-    EmailData
-    BodyVarsProvider
-}] struct { ... }
+if bvp, ok := any(data).(BodyVarsProvider); ok {
+    // resolve body vars, build bodyTemplateData, execute templates with it
+} else {
+    // execute templates with raw proto data
+}
 ```
 
-Mirrors `Render[E]` but executes against `bodyTemplateData` instead of the
-proto message directly. `Render` method:
+`Render[E].Render` method:
 
 1. Validates the proto message.
-2. Calls `resolveBodyVars` to substitute placeholders in `body_html`.
-3. Builds `bodyTemplateData` with the resolved HTML as `BodyHtml`.
-4. Executes the text and HTML templates.
-5. Applies theme overwrites.
+2. If `data` implements `BodyVarsProvider`: calls `resolveBodyVars`, builds
+   `bodyTemplateData`, and executes templates against it.
+3. Otherwise: executes templates against the raw proto message.
+4. Applies theme overwrites.
 
 ---
 
@@ -134,7 +137,7 @@ Export the updated templates to update the static HTML/text files:
 npm run export
 ```
 
-The exported files are embedded by `render.go` and used by `RenderBody[E]`.
+The exported files are embedded by `render.go` and used by `Render[E]`.
 
 ---
 
@@ -191,5 +194,5 @@ go mod tidy
 | `exported/html/job-application-decline.html` | Same                                                                                                      |
 | `exported/text/job-application-confirm.txt`  | Re-exported                                                                                               |
 | `exported/text/job-application-decline.txt`  | Same                                                                                                      |
-| `render.go`                                  | Add `BodyVarsProvider` interface, `resolveBodyVars`, `bodyTemplateData`, `RenderBody[E]`                  |
-| `emails_test.go`                             | Replace `testBodyJSON` with `testBodyHTML`; add `BodyHtml` + `CandidateName` to all confirm/decline cases |
+| `render.go`                                  | Add `BodyVarsProvider`, `resolveBodyVars`, `bodyTemplateData`; merge `RenderBody[E]`/`NewBody` into `Render[E]`/`New` via runtime type assertion |
+| `emails_test.go`                             | Replace `testBodyJSON` with `testBodyHTML`; add `BodyHtml` + `CandidateName` to all confirm/decline cases; switch `NewBody` calls to `New` |
