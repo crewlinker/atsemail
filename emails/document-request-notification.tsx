@@ -15,9 +15,9 @@ import {
 export const DocumentRequestNotification = () => {
   return (
     <Html>
-      <Head />
       <Preview>New Document Request for $.CrewGivenName$ $.CrewFamilyName$</Preview>
       <Tailwind>
+        <Head />
         <Body className="bg-white my-auto mx-auto font-sans px-2">
           <Container className="border border-solid border-[#eaeaea] rounded-2xl my-[40px] mx-auto p-[20px] max-w-[465px] sd-theme-container">
             <Img

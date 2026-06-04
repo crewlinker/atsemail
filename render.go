@@ -7,6 +7,8 @@ import (
 	"fmt"
 	htemplate "html/template"
 	"io"
+	"io/fs"
+	"strings"
 	ttemplate "text/template"
 
 	"github.com/PuerkitoBio/goquery"
@@ -38,21 +40,88 @@ type EmailData interface {
 	GetThemeOverwrites() *emailsv1.ThemeOverwrites
 }
 
+// BodyVarsProvider is implemented by email data types whose body_html
+// may contain $.candidate_name$, $.job_title$, $.company_name$ placeholders.
+type BodyVarsProvider interface {
+	GetCandidateName() string
+	GetJobPostingTitle() string
+	GetOrganizationName() string
+	GetBodyHtml() string
+	GetJobPostingHref() string
+	GetCareerSiteHomepageHref() string
+}
+
+// resolveBodyVars resolves $.candidate_name$, $.job_title$, $.company_name$,
+// $.job_posting_href$, $.career_site_homepage_href$ placeholders in body_html
+// using Go's text/template with custom delimiters.
+func resolveBodyVars(vars BodyVarsProvider) (string, error) {
+	tmpl, err := ttemplate.New("body").
+		Delims(leftDelim+".", rightDelim).
+		Funcs(ttemplate.FuncMap{
+			"candidate_name":            func() string { return vars.GetCandidateName() },
+			"job_title":                 func() string { return vars.GetJobPostingTitle() },
+			"company_name":              func() string { return vars.GetOrganizationName() },
+			"job_posting_href":          func() string { return vars.GetJobPostingHref() },
+			"career_site_homepage_href": func() string { return vars.GetCareerSiteHomepageHref() },
+		}).
+		Parse(vars.GetBodyHtml())
+	if err != nil {
+		return "", fmt.Errorf("failed to parse body_html template: %w", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		return "", fmt.Errorf("failed to execute body_html template: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+// bodyTemplateData is the template data for body-HTML templates.
+// BodyHtml is htemplate.HTML so html/template inserts it without escaping.
+type bodyTemplateData struct {
+	JobPostingTitle        string
+	JobPostingHref         string
+	CareerSiteHomepageHref string
+	OrganizationName       string
+	CandidateName          string
+	BodyHtml               htemplate.HTML
+}
+
+// stripReactComments removes React streaming markers (<!--$-->, <!--/$-->)
+// that conflict with Go's template $...$ delimiters.
+func stripReactComments(s string) string {
+	s = strings.ReplaceAll(s, "<!--$-->", "")
+	s = strings.ReplaceAll(s, "<!--/$-->", "")
+
+	return s
+}
+
 func New[E EmailData](name string) (r *Render[E], err error) {
 	r = &Render[E]{name: name}
 
-	r.html, err = htemplate.New("").
+	htmlContent, err := fs.ReadFile(htmlFiles, "exported/html/"+r.name+".html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read html: %w", err)
+	}
+
+	r.html, err = htemplate.New(r.name+".html").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		ParseFS(htmlFiles, "exported/html/"+r.name+".html")
+		Parse(stripReactComments(string(htmlContent)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
 
-	r.text, err = ttemplate.New("").
+	txtContent, err := fs.ReadFile(textFiles, "exported/text/"+r.name+".txt")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read text: %w", err)
+	}
+
+	r.text, err = ttemplate.New(r.name+".txt").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		ParseFS(textFiles, "exported/text/"+r.name+".txt")
+		Parse(stripReactComments(string(txtContent)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse text: %w", err)
 	}
@@ -67,16 +136,43 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
-	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
-		return fmt.Errorf("failed to render text: %w", err)
-	}
+	// any() cast is required because Go does not allow type assertions directly on type parameters.
+	if bvp, ok := any(data).(BodyVarsProvider); ok {
+		// html/template does not re-execute content inserted as htemplate.HTML, so $.candidate_name$
+		// and similar placeholders inside body_html would survive verbatim without this separate pass.
+		resolvedHTML, err := resolveBodyVars(bvp)
+		if err != nil {
+			return fmt.Errorf("failed to resolve body vars: %w", err)
+		}
 
-	if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", data); err != nil {
-		return fmt.Errorf("failed to render html: %w", err)
+		td := bodyTemplateData{ //nolint:gosec
+			JobPostingTitle:        bvp.GetJobPostingTitle(),
+			JobPostingHref:         bvp.GetJobPostingHref(),
+			CareerSiteHomepageHref: bvp.GetCareerSiteHomepageHref(),
+			OrganizationName:       bvp.GetOrganizationName(),
+			CandidateName:          bvp.GetCandidateName(),
+			BodyHtml:               htemplate.HTML(resolvedHTML),
+		}
+
+		if err := r.text.ExecuteTemplate(txtw, r.name+".txt", td); err != nil {
+			return fmt.Errorf("failed to render text: %w", err)
+		}
+
+		if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", td); err != nil {
+			return fmt.Errorf("failed to render html: %w", err)
+		}
+	} else {
+		if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
+			return fmt.Errorf("failed to render text: %w", err)
+		}
+
+		if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", data); err != nil {
+			return fmt.Errorf("failed to render html: %w", err)
+		}
 	}
 
 	if theme := data.GetThemeOverwrites(); theme != nil {
-		if err := r.ApplyTheme(&htmBuf, theme); err != nil {
+		if err := ApplyTheme(&htmBuf, theme); err != nil {
 			return fmt.Errorf("failed to apply theme: %w", err)
 		}
 	}
@@ -136,7 +232,7 @@ func ThemeOverwritesToCSS(theme *emailsv1.ThemeOverwrites) (
 	return //nolint:nakedret
 }
 
-func (r *Render[E]) ApplyTheme(htmBuf *bytes.Buffer, theme *emailsv1.ThemeOverwrites) error {
+func ApplyTheme(htmBuf *bytes.Buffer, theme *emailsv1.ThemeOverwrites) error {
 	doc, err := goquery.NewDocumentFromReader(htmBuf)
 	if err != nil {
 		return fmt.Errorf("failed to read into document: %w", err)

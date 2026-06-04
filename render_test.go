@@ -36,6 +36,29 @@ func AssertEmailRender[T atsemail.EmailData](
 	SaveScreenshot(ctx, g, fmt.Sprintf("%s_%d", templateName, caseIdx), &htbuf)
 }
 
+func AssertBodyEmailRender[T interface {
+	atsemail.EmailData
+	atsemail.BodyVarsProvider
+}](
+	tb testing.TB, templateName string, caseIdx int, data T, expf func(g Gomega, txtbuf, htbuf *bytes.Buffer),
+) {
+	tb.Helper()
+	g, ctx := NewWithT(tb), context.Background()
+
+	val, err := protovalidate.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	render, err := atsemail.New[T](templateName)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	var txtbuf, htbuf bytes.Buffer
+	g.Expect(render.Render(val, &txtbuf, &htbuf, data)).To(Succeed())
+
+	expf(g, &htbuf, &txtbuf)
+
+	SaveScreenshot(ctx, g, fmt.Sprintf("%s_%d", templateName, caseIdx), &htbuf)
+}
+
 func SaveScreenshot(ctx context.Context, g Gomega, name string, htbuf *bytes.Buffer) {
 	ctx, cancel := chromedp.NewContext(ctx)
 	defer cancel()

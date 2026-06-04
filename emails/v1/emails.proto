@@ -32,6 +32,11 @@ message JobApplicationConfirm {
   string career_site_homepage_href = 3 [(buf.validate.field).string.min_len = 1];
   // name of the organization sending the email
   string organization_name = 4 [(buf.validate.field).string.min_len = 1];
+  // Stringified HTML body; $.candidate_name$, $.job_title$,
+  // $.company_name$ placeholders are resolved by render.go before rendering.
+  string body_html = 5 [(buf.validate.field).string.min_len = 1];
+  // candidate's full name, substituted for $.candidate_name$ in body_html
+  string candidate_name = 6;
   // theme variables
   ThemeOverwrites theme_overwrites = 100;
 }
@@ -60,6 +65,11 @@ message JobApplicationDecline{
   string career_site_homepage_href = 3 [(buf.validate.field).string.min_len = 1];
   // name of the organization sending the email
   string organization_name = 4 [(buf.validate.field).string.min_len = 1];
+  // Stringified HTML body; $.candidate_name$, $.job_title$,
+  // $.company_name$ placeholders are resolved by render.go before rendering.
+  string body_html = 5 [(buf.validate.field).string.min_len = 1];
+  // candidate's full name, substituted for $.candidate_name$ in body_html
+  string candidate_name = 6;
   // theme variables
   ThemeOverwrites theme_overwrites = 100;
 }

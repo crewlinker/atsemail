@@ -1,24 +1,11 @@
-import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Hr,
-  Html,
-  Preview,
-  Text,
-  Tailwind,
-  Img,
-  Link,
-} from "@react-email/components";
+import { Body, Container, Head, Hr, Html, Img, Preview, Tailwind } from "@react-email/components";
 
 export const JobApplicationDecline = () => {
   return (
     <Html>
-      <Head />
       <Preview>Update on your application – $.JobPostingTitle$</Preview>
       <Tailwind>
+        <Head />
         <Body className="bg-white my-auto mx-auto font-sans px-2">
           <Container className="border border-solid border-[#eaeaea] rounded-2xl my-[40px] mx-auto p-[20px] max-w-[465px] sd-theme-container">
             <Img
@@ -28,18 +15,7 @@ export const JobApplicationDecline = () => {
               alt="$.OrganizationName$"
             />
             <Hr />
-            <Heading as="h2">Update on your application</Heading>
-            <Text>
-              We’ve reviewed your application for <Link href="$.JobPostingHref$">$.JobPostingTitle$</Link> and,
-              unfortunately, you won’t be moving forward for this role. We appreciate the time you took to apply and
-              encourage you to explore other opportunities that might be a great fit for you.
-            </Text>
-            <Button
-              className="bg-blue-500 hover:bg-blue-700 mb-5 text-white font-bold py-2 px-4 rounded sd-theme-button"
-              href="$.CareerSiteHomepageHref$"
-            >
-              View Job Postings
-            </Button>
+            <div dangerouslySetInnerHTML={{ __html: "$.BodyHtml$" }} />
           </Container>
         </Body>
       </Tailwind>

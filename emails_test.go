@@ -8,8 +8,11 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	"github.com/crewlinker/atsemail"
 	emailsv1 "github.com/crewlinker/atsemail/emails/v1"
 )
+
+const testBodyHTML = `<h2>Test heading</h2><p>Hello <strong>$.candidate_name$</strong>, your application for <a href="$.job_posting_href$"><em>$.job_title$</em></a> at $.company_name$ has been processed.</p>`
 
 func TestRenderJobApplicationNotification(t *testing.T) {
 	t.Parallel()
@@ -61,15 +64,14 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
+				BodyHtml:               atsemail.DefaultConfirmBodyHTML,
+				CandidateName:          "Jane Doe",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
 				g.Expect(htbuf.String()).To(HavePrefix("<!DOCTYPE"))
 				g.Expect(htbuf.String()).To(ContainSubstring("Janitor"))
-				g.Expect(htbuf.String()).To(ContainSubstring("demo.site.test.sterndesk.com"))
-
-				g.Expect(txtbuf.String()).To(ContainSubstring("---"))
-				g.Expect(txtbuf.String()).To(ContainSubstring("Janitor"))
-				g.Expect(txtbuf.String()).To(ContainSubstring("demo.site.test.sterndesk.com"))
+				g.Expect(htbuf.String()).To(ContainSubstring("Sterndesk"))
+				g.Expect(htbuf.String()).ToNot(ContainSubstring("$.candidate_name$"))
 			},
 		},
 		{
@@ -78,6 +80,8 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
 				OrganizationName:       "TOS Crew and Ship Delivery",
+				BodyHtml:               atsemail.DefaultConfirmBodyHTML,
+				CandidateName:          "Jane Doe",
 
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_NONE,
@@ -106,6 +110,8 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
+				BodyHtml:               atsemail.DefaultConfirmBodyHTML,
+				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_SMALL,
 					ButtonBackgroundColor: &emailsv1.Color{
@@ -129,6 +135,8 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
+				BodyHtml:               atsemail.DefaultConfirmBodyHTML,
+				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_MEDIUM,
 					LinkTextColor: &emailsv1.Color{
@@ -147,8 +155,41 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
 				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
 				OrganizationName:       "Sterndesk",
+				BodyHtml:               atsemail.DefaultConfirmBodyHTML,
+				CandidateName:          "Jane Doe",
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_LARGE,
+				},
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+			},
+		},
+		{
+			data: &emailsv1.JobApplicationConfirm{
+				JobPostingTitle:        "Custom body",
+				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
+				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
+				OrganizationName:       "Sterndesk",
+				BodyHtml:               testBodyHTML,
+				CandidateName:          "Jane Doe",
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+			},
+		},
+		{
+			data: &emailsv1.JobApplicationConfirm{
+				JobPostingTitle:        "Custom body with link theme",
+				JobPostingHref:         "http://demo.site.test.sterndesk.com/job-posting/1123",
+				CareerSiteHomepageHref: "http://demo.site.test.sterndesk.com",
+				OrganizationName:       "Sterndesk",
+				BodyHtml:               testBodyHTML,
+				CandidateName:          "Jane Doe",
+				ThemeOverwrites: &emailsv1.ThemeOverwrites{
+					LinkTextColor: &emailsv1.Color{
+						Red:   255,
+						Green: 0,
+						Blue:  0,
+					},
 				},
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
@@ -157,7 +198,7 @@ func TestRenderJobApplicationConfirm(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("example %d", idx), func(t *testing.T) {
 			t.Parallel()
-			AssertEmailRender(t, "job-application-confirm", idx, entry.data, entry.exp)
+			AssertBodyEmailRender(t, "job-application-confirm", idx, entry.data, entry.exp)
 		})
 	}
 }
@@ -209,6 +250,8 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
 				OrganizationName:       "TOS Crew and Ship Delivery",
 				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
+				BodyHtml:               atsemail.DefaultDeclineBodyHTML,
+				CandidateName:          "Jane Doe",
 
 				ThemeOverwrites: &emailsv1.ThemeOverwrites{
 					BorderRadius: emailsv1.BorderRadius_BORDER_RADIUS_NONE,
@@ -237,6 +280,43 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
 				OrganizationName:       "TOS Crew and Ship Delivery",
 				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
+				BodyHtml:               atsemail.DefaultDeclineBodyHTML,
+				CandidateName:          "Jane Doe",
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+				g.Expect(htbuf.String()).To(HavePrefix("<!DOCTYPE"))
+				g.Expect(htbuf.String()).To(ContainSubstring("Simple template"))
+				g.Expect(htbuf.String()).To(ContainSubstring("TOS Crew and Ship Delivery"))
+				g.Expect(htbuf.String()).ToNot(ContainSubstring("$.candidate_name$"))
+			},
+		},
+		{
+			data: &emailsv1.JobApplicationDecline{
+				JobPostingTitle:        "Custom body",
+				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
+				OrganizationName:       "TOS Crew and Ship Delivery",
+				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
+				BodyHtml:               testBodyHTML,
+				CandidateName:          "Jane Doe",
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+			},
+		},
+		{
+			data: &emailsv1.JobApplicationDecline{
+				JobPostingTitle:        "Custom body with link theme",
+				CareerSiteHomepageHref: "http://tos.site.test.sterndesk.com",
+				OrganizationName:       "TOS Crew and Ship Delivery",
+				JobPostingHref:         "http://tos.site.test.sterndesk.com/job-posting/1123",
+				BodyHtml:               testBodyHTML,
+				CandidateName:          "Jane Doe",
+				ThemeOverwrites: &emailsv1.ThemeOverwrites{
+					LinkTextColor: &emailsv1.Color{
+						Red:   255,
+						Green: 0,
+						Blue:  0,
+					},
+				},
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
 			},
@@ -244,7 +324,7 @@ func TestRenderJobApplicationDecline(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("example %d", idx), func(t *testing.T) {
 			t.Parallel()
-			AssertEmailRender(t, "job-application-decline", idx, entry.data, entry.exp)
+			AssertBodyEmailRender(t, "job-application-decline", idx, entry.data, entry.exp)
 		})
 	}
 }
