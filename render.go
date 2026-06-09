@@ -59,7 +59,7 @@ func ResolveVars(s string, vars map[string]string) (string, error) {
 		funcMap[k] = func() string { return v }
 	}
 
-	tmpl, err := ttemplate.New("").Delims("{", "}").Funcs(funcMap).Parse(s)
+	tmpl, err := ttemplate.New("").Delims(leftDelim, rightDelim).Funcs(funcMap).Parse(s)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
@@ -70,15 +70,6 @@ func ResolveVars(s string, vars map[string]string) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-// stripReactComments removes React streaming markers (<!--$-->, <!--/$-->)
-// that Next.js injects and are not part of the template syntax.
-func stripReactComments(s string) string {
-	s = strings.ReplaceAll(s, "<!--$-->", "")
-	s = strings.ReplaceAll(s, "<!--/$-->", "")
-
-	return s
 }
 
 func New[E EmailData](name string) (r *Render[E], err error) {
@@ -92,7 +83,7 @@ func New[E EmailData](name string) (r *Render[E], err error) {
 	r.html, err = htemplate.New(r.name+".html").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		Parse(stripReactComments(string(htmlContent)))
+		Parse(string(htmlContent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
@@ -105,7 +96,7 @@ func New[E EmailData](name string) (r *Render[E], err error) {
 	r.text, err = ttemplate.New(r.name+".txt").
 		Delims(leftDelim, rightDelim).
 		Option(opts).
-		Parse(stripReactComments(string(txtContent)))
+		Parse(string(txtContent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse text: %w", err)
 	}
