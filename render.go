@@ -33,6 +33,9 @@ const (
 	rightDelim = "}"
 )
 
+// protoStringFields returns a map of exported string field names to their values using
+// Go reflection. Proto internal fields (state, sizeCache, unknownFields) are unexported
+// and skipped automatically.
 func protoStringFields(msg proto.Message) map[string]string {
 	v := reflect.ValueOf(msg)
 	if v.Kind() == reflect.Ptr {
