@@ -30,25 +30,14 @@ type Render[E EmailData] struct {
 }
 
 const (
-	leftDelim  = "{"
-	rightDelim = "}"
+	leftDelim  = "$"
+	rightDelim = "$"
 	opts       = "missingkey=error"
 )
 
 type EmailData interface {
 	proto.Message
 	GetThemeOverwrites() *emailsv1.ThemeOverwrites
-}
-
-// BodyVarsProvider is implemented by email data types whose body_html field
-// may contain {variable_name} placeholders resolved via ResolveVars.
-type BodyVarsProvider interface {
-	GetCandidateName() string
-	GetJobPostingTitle() string
-	GetOrganizationName() string
-	GetBodyHtml() string
-	GetJobPostingHref() string
-	GetCareerSiteHomepageHref() string
 }
 
 // ResolveVars replaces {variable_name} placeholders in s using vars.
@@ -59,7 +48,7 @@ func ResolveVars(s string, vars map[string]string) (string, error) {
 		funcMap[k] = func() string { return v }
 	}
 
-	tmpl, err := ttemplate.New("").Delims(leftDelim, rightDelim).Funcs(funcMap).Parse(s)
+	tmpl, err := ttemplate.New("").Delims("{", "}").Funcs(funcMap).Parse(s)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
