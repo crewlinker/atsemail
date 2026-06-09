@@ -6,7 +6,7 @@ package atsemail
 const DefaultConfirmBodyHTML = `
 	<hr>
 	<h2>Application received</h2>
-	<p>We have succesfully received your application for the job posting:&nbsp;
+	<p>We have successfully received your application for the job posting:&nbsp;
 		<a href="{job_posting_href}">{job_title}</a>. This is what will happen next:
 	</p>
 	<table>
