@@ -3,9 +3,9 @@
 
 NEW DOCUMENT REQUEST
 
-$.CrewGivenName$ $.CrewFamilyName$ has submitted a request for the document. Please review the request and take action by clicking the button below.
+{CrewGivenName} {CrewFamilyName} has submitted a request for the document. Please review the request and take action by clicking the button below.
 
-Review Document Request $.DocumentRequestHref$
+Review Document Request {DocumentRequestHref}
 
 ----------------------------------------
 

@@ -5,11 +5,10 @@ import (
 	"embed"
 	"encoding/base64"
 	"fmt"
-	htemplate "html/template"
 	"io"
 	"io/fs"
+	"reflect"
 	"strings"
-	ttemplate "text/template"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/bufbuild/protovalidate-go"
@@ -24,77 +23,48 @@ var htmlFiles embed.FS
 var textFiles embed.FS
 
 type Render[E EmailData] struct {
-	name string
-	html *htemplate.Template
-	text *ttemplate.Template
+	name    string
+	htmlSrc string
+	txtSrc  string
 }
 
 const (
-	leftDelim  = "$"
-	rightDelim = "$"
-	opts       = "missingkey=error"
+	leftDelim  = "{"
+	rightDelim = "}"
 )
+
+// protoStringFields returns a map of exported string field names to their values using
+// Go reflection. Proto internal fields (state, sizeCache, unknownFields) are unexported
+// and skipped automatically.
+func protoStringFields(msg proto.Message) map[string]string {
+	v := reflect.ValueOf(msg)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	t := v.Type()
+	m := make(map[string]string, t.NumField())
+	for i := range t.NumField() {
+		f := t.Field(i)
+		fv := v.Field(i)
+		if !f.IsExported() || fv.Kind() != reflect.String {
+			continue
+		}
+		m[f.Name] = fv.String()
+	}
+	return m
+}
 
 type EmailData interface {
 	proto.Message
 	GetThemeOverwrites() *emailsv1.ThemeOverwrites
 }
 
-// BodyVarsProvider is implemented by email data types whose body_html
-// may contain $.candidate_name$, $.job_title$, $.company_name$ placeholders.
-type BodyVarsProvider interface {
-	GetCandidateName() string
-	GetJobPostingTitle() string
-	GetOrganizationName() string
-	GetBodyHtml() string
-	GetJobPostingHref() string
-	GetCareerSiteHomepageHref() string
-}
-
-// resolveBodyVars resolves $.candidate_name$, $.job_title$, $.company_name$,
-// $.job_posting_href$, $.career_site_homepage_href$ placeholders in body_html
-// using Go's text/template with custom delimiters.
-func resolveBodyVars(vars BodyVarsProvider) (string, error) {
-	tmpl, err := ttemplate.New("body").
-		Delims(leftDelim+".", rightDelim).
-		Funcs(ttemplate.FuncMap{
-			"candidate_name":            func() string { return vars.GetCandidateName() },
-			"job_title":                 func() string { return vars.GetJobPostingTitle() },
-			"company_name":              func() string { return vars.GetOrganizationName() },
-			"job_posting_href":          func() string { return vars.GetJobPostingHref() },
-			"career_site_homepage_href": func() string { return vars.GetCareerSiteHomepageHref() },
-		}).
-		Parse(vars.GetBodyHtml())
-	if err != nil {
-		return "", fmt.Errorf("failed to parse body_html template: %w", err)
+// ResolveVars replaces {variable_name} placeholders in s using vars.
+func ResolveVars(s string, vars map[string]string) (string, error) {
+	for k, v := range vars {
+		s = strings.ReplaceAll(s, leftDelim+k+rightDelim, v)
 	}
-
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, nil); err != nil {
-		return "", fmt.Errorf("failed to execute body_html template: %w", err)
-	}
-
-	return buf.String(), nil
-}
-
-// bodyTemplateData is the template data for body-HTML templates.
-// BodyHtml is htemplate.HTML so html/template inserts it without escaping.
-type bodyTemplateData struct {
-	JobPostingTitle        string
-	JobPostingHref         string
-	CareerSiteHomepageHref string
-	OrganizationName       string
-	CandidateName          string
-	BodyHtml               htemplate.HTML
-}
-
-// stripReactComments removes React streaming markers (<!--$-->, <!--/$-->)
-// that conflict with Go's template $...$ delimiters.
-func stripReactComments(s string) string {
-	s = strings.ReplaceAll(s, "<!--$-->", "")
-	s = strings.ReplaceAll(s, "<!--/$-->", "")
-
-	return s
+	return s, nil
 }
 
 func New[E EmailData](name string) (r *Render[E], err error) {
@@ -104,27 +74,13 @@ func New[E EmailData](name string) (r *Render[E], err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read html: %w", err)
 	}
-
-	r.html, err = htemplate.New(r.name+".html").
-		Delims(leftDelim, rightDelim).
-		Option(opts).
-		Parse(stripReactComments(string(htmlContent)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse html: %w", err)
-	}
+	r.htmlSrc = string(htmlContent)
 
 	txtContent, err := fs.ReadFile(textFiles, "exported/text/"+r.name+".txt")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read text: %w", err)
 	}
-
-	r.text, err = ttemplate.New(r.name+".txt").
-		Delims(leftDelim, rightDelim).
-		Option(opts).
-		Parse(stripReactComments(string(txtContent)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse text: %w", err)
-	}
+	r.txtSrc = string(txtContent)
 
 	return r, nil
 }
@@ -136,40 +92,21 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
-	// any() cast is required because Go does not allow type assertions directly on type parameters.
-	if bvp, ok := any(data).(BodyVarsProvider); ok {
-		// html/template does not re-execute content inserted as htemplate.HTML, so $.candidate_name$
-		// and similar placeholders inside body_html would survive verbatim without this separate pass.
-		resolvedHTML, err := resolveBodyVars(bvp)
-		if err != nil {
-			return fmt.Errorf("failed to resolve body vars: %w", err)
-		}
+	vars := protoStringFields(data)
 
-		td := bodyTemplateData{ //nolint:gosec
-			JobPostingTitle:        bvp.GetJobPostingTitle(),
-			JobPostingHref:         bvp.GetJobPostingHref(),
-			CareerSiteHomepageHref: bvp.GetCareerSiteHomepageHref(),
-			OrganizationName:       bvp.GetOrganizationName(),
-			CandidateName:          bvp.GetCandidateName(),
-			BodyHtml:               htemplate.HTML(resolvedHTML),
-		}
-
-		if err := r.text.ExecuteTemplate(txtw, r.name+".txt", td); err != nil {
-			return fmt.Errorf("failed to render text: %w", err)
-		}
-
-		if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", td); err != nil {
-			return fmt.Errorf("failed to render html: %w", err)
-		}
-	} else {
-		if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
-			return fmt.Errorf("failed to render text: %w", err)
-		}
-
-		if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", data); err != nil {
-			return fmt.Errorf("failed to render html: %w", err)
-		}
+	txt, err := ResolveVars(r.txtSrc, vars)
+	if err != nil {
+		return fmt.Errorf("failed to render text: %w", err)
 	}
+	if _, err := io.WriteString(txtw, txt); err != nil {
+		return fmt.Errorf("failed to write text: %w", err)
+	}
+
+	html, err := ResolveVars(r.htmlSrc, vars)
+	if err != nil {
+		return fmt.Errorf("failed to render html: %w", err)
+	}
+	htmBuf.WriteString(html)
 
 	if theme := data.GetThemeOverwrites(); theme != nil {
 		if err := ApplyTheme(&htmBuf, theme); err != nil {
