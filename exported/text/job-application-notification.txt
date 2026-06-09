@@ -3,9 +3,9 @@
 
 NEW JOB APPLICATION
 
-$.JobApplicantGivenName$ $.JobApplicantFamilyName$ has applied for the job opening: $.JobPostingTitle$ $.JobPostingHref$. Open the Sterndesk dashboard or view the application directly by clicking the button below.
+{JobApplicantGivenName} {JobApplicantFamilyName} has applied for the job opening: {JobPostingTitle} {JobPostingHref}. Open the Sterndesk dashboard or view the application directly by clicking the button below.
 
-View application $.JobApplicationHref$
+View application {JobApplicationHref}
 
 ----------------------------------------
 

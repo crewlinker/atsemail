@@ -5,11 +5,10 @@ import (
 	"embed"
 	"encoding/base64"
 	"fmt"
-	htemplate "html/template"
 	"io"
 	"io/fs"
+	"reflect"
 	"strings"
-	ttemplate "text/template"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/bufbuild/protovalidate-go"
@@ -24,16 +23,33 @@ var htmlFiles embed.FS
 var textFiles embed.FS
 
 type Render[E EmailData] struct {
-	name string
-	html *htemplate.Template
-	text *ttemplate.Template
+	name    string
+	htmlSrc string
+	txtSrc  string
 }
 
 const (
-	leftDelim  = "$"
-	rightDelim = "$"
-	opts       = "missingkey=error"
+	leftDelim  = "{"
+	rightDelim = "}"
 )
+
+func protoStringFields(msg proto.Message) map[string]string {
+	v := reflect.ValueOf(msg)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	t := v.Type()
+	m := make(map[string]string, t.NumField())
+	for i := range t.NumField() {
+		f := t.Field(i)
+		fv := v.Field(i)
+		if !f.IsExported() || fv.Kind() != reflect.String {
+			continue
+		}
+		m[f.Name] = fv.String()
+	}
+	return m
+}
 
 type EmailData interface {
 	proto.Message
@@ -41,24 +57,11 @@ type EmailData interface {
 }
 
 // ResolveVars replaces {variable_name} placeholders in s using vars.
-// Delimiters are { and } for all substitution in atsemail.
 func ResolveVars(s string, vars map[string]string) (string, error) {
-	funcMap := make(ttemplate.FuncMap, len(vars))
 	for k, v := range vars {
-		funcMap[k] = func() string { return v }
+		s = strings.ReplaceAll(s, leftDelim+k+rightDelim, v)
 	}
-
-	tmpl, err := ttemplate.New("").Delims("{", "}").Funcs(funcMap).Parse(s)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, nil); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	return s, nil
 }
 
 func New[E EmailData](name string) (r *Render[E], err error) {
@@ -68,27 +71,13 @@ func New[E EmailData](name string) (r *Render[E], err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read html: %w", err)
 	}
-
-	r.html, err = htemplate.New(r.name+".html").
-		Delims(leftDelim, rightDelim).
-		Option(opts).
-		Parse(string(htmlContent))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse html: %w", err)
-	}
+	r.htmlSrc = string(htmlContent)
 
 	txtContent, err := fs.ReadFile(textFiles, "exported/text/"+r.name+".txt")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read text: %w", err)
 	}
-
-	r.text, err = ttemplate.New(r.name+".txt").
-		Delims(leftDelim, rightDelim).
-		Option(opts).
-		Parse(string(txtContent))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse text: %w", err)
-	}
+	r.txtSrc = string(txtContent)
 
 	return r, nil
 }
@@ -100,13 +89,21 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 		return fmt.Errorf("invalid email data: %w", err)
 	}
 
-	if err := r.text.ExecuteTemplate(txtw, r.name+".txt", data); err != nil {
+	vars := protoStringFields(data)
+
+	txt, err := ResolveVars(r.txtSrc, vars)
+	if err != nil {
 		return fmt.Errorf("failed to render text: %w", err)
 	}
+	if _, err := io.WriteString(txtw, txt); err != nil {
+		return fmt.Errorf("failed to write text: %w", err)
+	}
 
-	if err := r.html.ExecuteTemplate(&htmBuf, r.name+".html", data); err != nil {
+	html, err := ResolveVars(r.htmlSrc, vars)
+	if err != nil {
 		return fmt.Errorf("failed to render html: %w", err)
 	}
+	htmBuf.WriteString(html)
 
 	if theme := data.GetThemeOverwrites(); theme != nil {
 		if err := ApplyTheme(&htmBuf, theme); err != nil {
