@@ -16,6 +16,15 @@ import (
 	"github.com/crewlinker/atsemail"
 )
 
+func mustResolveVars(t testing.TB, s string, vars map[string]string) string {
+	t.Helper()
+	resolved, err := atsemail.ResolveVars(s, vars)
+	if err != nil {
+		t.Fatalf("ResolveVars: %v", err)
+	}
+	return resolved
+}
+
 func AssertEmailRender[T atsemail.EmailData](
 	tb testing.TB, templateName string, caseIdx int, data T, expf func(g Gomega, txtbuf, htbuf *bytes.Buffer),
 ) {
