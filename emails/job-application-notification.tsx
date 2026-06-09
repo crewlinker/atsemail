@@ -31,8 +31,8 @@ export const JobApplicationNotification = () => {
             <Heading as="h2">New job application</Heading>
             <Text>
               <em>{"{JobApplicantGivenName} {JobApplicantFamilyName}"}</em> has applied for the job opening:&nbsp;
-              <Link href="{JobPostingHref}">{"{JobPostingTitle}"}</Link>. Open the&nbsp;<b>Sterndesk</b> dashboard or view
-              the application directly by clicking the button below.
+              <Link href="{JobPostingHref}">{"{JobPostingTitle}"}</Link>. Open the&nbsp;<b>Sterndesk</b> dashboard or
+              view the application directly by clicking the button below.
             </Text>
             <Button
               className="bg-blue-500 hover:bg-blue-700 mb-5 text-white font-bold py-2 px-4 rounded sd-theme-button"
