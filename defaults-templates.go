@@ -1,9 +1,8 @@
 package atsemail
 
-// DefaultConfirmBodyHTML is the default body_html for job-application-confirm emails.
-// It uses {job_posting_href}, {job_title}, and {career_site_homepage_href} placeholders
-// resolved via ResolveVars before rendering.
-const DefaultConfirmBodyHTML = `
+// DefaultConfirmBodyHTMLLegacy is the original table-based body seeded by migration 123.
+// Used only as the down-migration target for the migration that replaces it with DefaultConfirmBodyHTML.
+const DefaultConfirmBodyHTMLLegacy = `
 	<hr>
 	<h2>Application received</h2>
 	<p>We have successfully received your application for the job posting:&nbsp;
@@ -29,10 +28,14 @@ const DefaultConfirmBodyHTML = `
 	<hr>
 `
 
-// DefaultDeclineBodyHTML is the default body_html for job-application-decline emails.
+// DefaultConfirmBodyHTML is the default body for job-application-confirm emails.
 // It uses {job_posting_href}, {job_title}, and {career_site_homepage_href} placeholders
 // resolved via ResolveVars before rendering.
-const DefaultDeclineBodyHTML = `
+const DefaultConfirmBodyHTML = `<h2>Application received</h2><p>We have successfully received your application for the job posting: <a href="{job_posting_href}">{job_title}</a>. This is what will happen next:</p><ul><li>We will review your resume and any other documents you've provided</li><li>You'll hear back from us in the coming days</li></ul><p>If you want to take a look at some more job postings. You can click the button below or copy it in your browser:</p><a href="{career_site_homepage_href}" style="background-color:#3b82f6;color:#ffffff;font-weight:700;padding:8px 16px;border-radius:0.25rem;text-decoration:none;display:inline-block;" class="sd-theme-button">View other job postings</a><br><br>`
+
+// DefaultDeclineBodyHTMLLegacy is the original body seeded by migration 123.
+// Used only as the down-migration target for the migration that replaces it with DefaultDeclineBodyHTML.
+const DefaultDeclineBodyHTMLLegacy = `
 	<hr>
 	<h2>Update on your application</h2>
 	<p>We&#39;ve reviewed your application for
@@ -48,3 +51,8 @@ const DefaultDeclineBodyHTML = `
 		View Job Postings
 	</a>
 `
+
+// DefaultDeclineBodyHTML is the default body for job-application-decline emails.
+// It uses {job_posting_href}, {job_title}, and {career_site_homepage_href} placeholders
+// resolved via ResolveVars before rendering.
+const DefaultDeclineBodyHTML = `<h2>Update on your application</h2><p>We've reviewed your application for <a href="{job_posting_href}">{job_title}</a> and, unfortunately, you won't be moving forward for this role. We appreciate the time you took to apply and encourage you to explore other opportunities that might be a great fit for you.</p><a href="{career_site_homepage_href}" style="background-color:#3b82f6;color:#ffffff;font-weight:700;padding:8px 16px;border-radius:0.25rem;text-decoration:none;display:inline-block;" class="sd-theme-button">View Job Postings</a><br><br>`
