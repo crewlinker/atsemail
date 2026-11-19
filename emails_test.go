@@ -42,6 +42,22 @@ func TestRenderJobApplicationNotification(t *testing.T) {
 				g.Expect(txtbuf.String()).To(ContainSubstring("Janitor"))
 			},
 		},
+		{
+			data: &emailsv1.JobApplicationNotification{
+				JobApplicantGivenName: "Adrian",
+				JobPostingTitle:       "Janitor",
+				JobPostingHref:        "http://dash.sterndesk.com/posting",
+				JobApplicationHref:    "http://dash.sterndesk.com/application",
+				OrganizationName:      "Sterndesk",
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+				g.Expect(htbuf.String()).To(ContainSubstring("Adrian "))
+				g.Expect(htbuf.String()).ToNot(ContainSubstring("{JobApplicantFamilyName}"))
+
+				g.Expect(txtbuf.String()).To(ContainSubstring("Adrian  has applied for the job"))
+				g.Expect(txtbuf.String()).ToNot(ContainSubstring("{JobApplicantFamilyName}"))
+			},
+		},
 	} {
 		t.Run(fmt.Sprintf("example %d", idx), func(t *testing.T) {
 			t.Parallel()
@@ -256,6 +272,20 @@ func TestRenderDocumentRequestNotification(t *testing.T) {
 				g.Expect(txtbuf.String()).To(ContainSubstring("---"))
 				g.Expect(txtbuf.String()).To(ContainSubstring("Emma"))
 				g.Expect(txtbuf.String()).To(ContainSubstring("Mailstorm"))
+			},
+		},
+		{
+			data: &emailsv1.DocumentRequestNotification{
+				CrewGivenName:       "Adrian",
+				DocumentRequestHref: "http://dash.sterndesk.com/document-reqeust/11233",
+				OrganizationName:    "Sterndesk",
+			},
+			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
+				g.Expect(htbuf.String()).To(ContainSubstring("New Document Request for Adrian "))
+				g.Expect(htbuf.String()).ToNot(ContainSubstring("{CrewFamilyName}"))
+
+				g.Expect(txtbuf.String()).To(ContainSubstring("Adrian  has submitted a request"))
+				g.Expect(txtbuf.String()).ToNot(ContainSubstring("{CrewFamilyName}"))
 			},
 		},
 	} {
