@@ -51,10 +51,10 @@ func TestRenderJobApplicationNotification(t *testing.T) {
 				OrganizationName:      "Sterndesk",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
-				g.Expect(htbuf.String()).To(ContainSubstring("Adrian "))
+				g.Expect(htbuf.String()).To(ContainSubstring("Adrian"))
 				g.Expect(htbuf.String()).ToNot(ContainSubstring("{JobApplicantFamilyName}"))
 
-				g.Expect(txtbuf.String()).To(ContainSubstring("Adrian  has applied for the job"))
+				g.Expect(txtbuf.String()).To(ContainSubstring("Adrian has applied for the job"))
 				g.Expect(txtbuf.String()).ToNot(ContainSubstring("{JobApplicantFamilyName}"))
 			},
 		},
@@ -281,10 +281,10 @@ func TestRenderDocumentRequestNotification(t *testing.T) {
 				OrganizationName:    "Sterndesk",
 			},
 			exp: func(g Gomega, htbuf, txtbuf *bytes.Buffer) {
-				g.Expect(htbuf.String()).To(ContainSubstring("New Document Request for Adrian "))
+				g.Expect(htbuf.String()).To(ContainSubstring("<em>Adrian</em> has submitted a request"))
 				g.Expect(htbuf.String()).ToNot(ContainSubstring("{CrewFamilyName}"))
 
-				g.Expect(txtbuf.String()).To(ContainSubstring("Adrian  has submitted a request"))
+				g.Expect(txtbuf.String()).To(ContainSubstring("Adrian has submitted a request"))
 				g.Expect(txtbuf.String()).ToNot(ContainSubstring("{CrewFamilyName}"))
 			},
 		},
