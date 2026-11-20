@@ -9,7 +9,7 @@ message JobApplicationNotification {
   // applicant given name
   string job_applicant_given_name = 1 [(buf.validate.field).string.min_len = 1];
   // applicants family name
-  string job_applicant_family_name = 2 [(buf.validate.field).string.min_len = 1];
+  string job_applicant_family_name = 2;
   // title of the job posting
   string job_posting_title = 3 [(buf.validate.field).string.min_len = 1];
   // href to the job posting
@@ -46,7 +46,7 @@ message DocumentRequestNotification {
   // crew given name
   string crew_given_name = 1 [(buf.validate.field).string.min_len = 1];
   // crew family name
-  string crew_family_name = 2 [(buf.validate.field).string.min_len = 1];
+  string crew_family_name = 2;
   // href to the document request
   string document_request_href = 3 [(buf.validate.field).string.min_len = 1];
   // name of the organization sending the email

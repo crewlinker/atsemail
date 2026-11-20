@@ -93,8 +93,15 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 	}
 
 	vars := protoStringFields(data)
+	txtSrc, htmlSrc := r.txtSrc, r.htmlSrc
+	for k, v := range vars {
+		if v == "" {
+			txtSrc = strings.ReplaceAll(txtSrc, " "+leftDelim+k+rightDelim, "")
+			htmlSrc = strings.ReplaceAll(htmlSrc, " "+leftDelim+k+rightDelim, "")
+		}
+	}
 
-	txt, err := ResolveVars(r.txtSrc, vars)
+	txt, err := ResolveVars(txtSrc, vars)
 	if err != nil {
 		return fmt.Errorf("failed to render text: %w", err)
 	}
@@ -102,7 +109,7 @@ func (r *Render[E]) Render(val *protovalidate.Validator, txtw, htmw io.Writer, d
 		return fmt.Errorf("failed to write text: %w", err)
 	}
 
-	html, err := ResolveVars(r.htmlSrc, vars)
+	html, err := ResolveVars(htmlSrc, vars)
 	if err != nil {
 		return fmt.Errorf("failed to render html: %w", err)
 	}
